@@ -1,0 +1,27 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Local Data / Dumps
+*.json
+*.txt
+*.html
+
+# Scrapers & Local Scripts
+scraper_*.py
+aggregatore.py
+scheduler.py
+backup_mongo.py
+delete_old_docs.py
+fix_and_index.py
+create_indexes.py
+parse_subito_static.py
+keywords_manager.py
+start_scheduler.bat*
+
+# System / Editor
+.vscode/
