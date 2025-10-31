@@ -1,17 +1,15 @@
-# Python
+# Python environment
 venv/
 __pycache__/
 *.pyc
 
-# Environment
+# Secrets
 .env
 
-# Local Data / Dumps
+# Local dumps / DB / Scraper data
 *.json
-*.txt
-*.html
 
-# Scrapers & Local Scripts
+# Scrapers & local-only scripts (not deployed)
 scraper_*.py
 aggregatore.py
 scheduler.py

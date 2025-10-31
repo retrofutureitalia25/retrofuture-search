@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>RetroFuture Search — Trova oggetti vintage e retrò</title>
+
+  <!-- SEO base -->
+<meta name="description" content="RetroFuture Search: il motore di ricerca per oggetti vintage e retrò da eBay, Subito, Vinted e altri marketplace.">
+<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/">
+
+<!-- Open Graph -->
+<meta property="og:title" content="RetroFuture Search — Motore di ricerca vintage">
+<meta property="og:description" content="Cerca radio d’epoca, giradischi, vinili, moda retrò, collezionismo e altro ancora.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url_root }}">
+<meta property="og:image" content="{{ request.url_root }}static/og-preview.png">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RetroFuture Search — Motore di ricerca vintage">
+<meta name="twitter:description" content="Trova migliaia di oggetti vintage e retrò in un unico posto.">
+<meta name="twitter:image" content="{{ request.url_root }}static/og-preview.png">
+
+<title>RetroFuture Search — Motore di ricerca vintage</title>
+
+<!-- JSON-LD: WebSite + SearchAction -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "RetroFuture Search",
+  "url": "{{ request.url_root }}",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "{{ request.url_root }}search?q={query}",
+    "query-input": "required name=query"
+  }
+}
+</script>
+
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    form { display: flex; gap: 8px; margin-bottom: 12px; }
+    input[type="text"] { flex: 1; padding: 10px; font-size: 16px; }
+    button { padding: 10px 14px; cursor: pointer; }
+    #log { margin-top: 10px; padding: 10px; border: 1px solid #ccc; height: 220px; overflow: auto; background: #f9f9f9; }
+    #log p { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+    #log p.err { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>RetroFuture Search — Trova oggetti vintage e retrò</h1>
+
+  <form action="/search" method="get">
+    <input type="text" name="q" placeholder="Cerca oggetti vintage..." />
+    <button type="submit">Cerca</button>
+    <button type="button" id="aggiornaBtn">Aggiorna tutti gli annunci</button>
+  </form>
+
+  <div id="log" hidden></div>
+
+  <script>
+    const btn = document.getElementById('aggiornaBtn');
+    const logDiv = document.getElementById('log');
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Aggiornamento in corso...';
+      logDiv.hidden = false;
+      logDiv.innerHTML = '';
+
+      try {
+        const res = await fetch('/aggiorna', { method: 'POST' });
+        const data = await res.json();
+
+        const out = (data.stdout || '').split('\n');
+        out.forEach(line => {
+          if (!line.trim()) return;
+          const p = document.createElement('p');
+          if (line.toLowerCase().includes('errore')) p.classList.add('err');
+          p.textContent = line;
+          logDiv.appendChild(p);
+        });
+
+        const p = document.createElement('p');
+        p.style.fontWeight = 'bold';
+        p.textContent = data.message;
+        logDiv.appendChild(p);
+      } catch (e) {
+        const p = document.createElement('p');
+        p.className = 'err';
+        p.textContent = 'Errore durante la richiesta.';
+        logDiv.appendChild(p);
+        console.error(e);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Aggiorna tutti gli annunci';
+    });
+  </script>
+</body>
+</html>
