@@ -1,16 +1,23 @@
+# utils_db.py
 import os
 from datetime import datetime
 from pymongo import MongoClient
-from dotenv import load_dotenv
 from utils_log import log_event
 
-load_dotenv()
-
+# ✅ Variabili ambiente da Render
 MONGO_URI = os.getenv("MONGO_URI")
-DB_NAME = "database_vintage"
+DB_NAME = os.getenv("DB_NAME", "retrofuture")  # fallback
 COLLECTION_NAME = "annunci"
 
-# ✅ Stats globali inizializzate (evita errori al primo run)
+if not MONGO_URI:
+    raise RuntimeError("❌ ERRORE: MONGO_URI non impostata nelle variabili ambiente!")
+
+# ✅ Connessione persistente (Atlas gestisce pool)
+client = MongoClient(MONGO_URI)
+db = client[DB_NAME]
+col = db[COLLECTION_NAME]
+
+# ✅ Stats globali
 last_db_stats = {
     "inserted": 0,
     "updated": 0,
@@ -22,14 +29,8 @@ last_db_stats = {
 def salva_annunci_mongo(items, source="unknown"):
     global last_db_stats
 
-    client = MongoClient(MONGO_URI)
-    col = client[DB_NAME][COLLECTION_NAME]
-
     tot = len(items)
-    inseriti = 0
-    aggiornati = 0
-    errori = 0
-    skipped = 0
+    inseriti, aggiornati, skipped, errori = 0, 0, 0, 0
 
     log_event(source, f"🚀 Avvio salvataggio di {tot} annunci su MongoDB")
 
@@ -64,13 +65,10 @@ def salva_annunci_mongo(items, source="unknown"):
             errori += 1
             log_event(source, f"❌ Errore inserimento: {e}", "ERROR")
 
-        # ✅ Progresso ogni 100
         if i % 100 == 0 or i == tot:
             log_event(source, f"📦 {i}/{tot} processati")
 
-    client.close()
-
-    # ✅ Aggiorna stats globali (usate dagli scraper + scheduler)
+    # ✅ Stats aggiornate
     last_db_stats = {
         "inserted": inseriti,
         "updated": aggiornati,
@@ -83,9 +81,9 @@ def salva_annunci_mongo(items, source="unknown"):
     log_event(source, "===== RISULTATO SALVATAGGIO =====")
     log_event(source, f"✅ Inseriti: {inseriti}")
     log_event(source, f"♻️ Aggiornati: {aggiornati}")
-    log_event(source, f"⚪ Ignorati (nessun cambiamento): {skipped}")
+    log_event(source, f"⚪ Ignorati: {skipped}")
     log_event(source, f"❌ Errori: {errori}")
-    log_event(source, f"📊 Totale annunci passati: {tot}")
+    log_event(source, f"📊 Totale: {tot}")
     log_event(source, "✅ Salvataggio concluso!")
 
     return inseriti, aggiornati, skipped, errori
