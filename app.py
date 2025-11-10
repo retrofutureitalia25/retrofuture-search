@@ -1,8 +1,12 @@
-import os
-from datetime import datetime, timedelta
-from flask import Flask, request, render_template, Response
+# app.py
+import os, json
+from datetime import datetime
+from flask import Flask, request, render_template, Response, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from rapidfuzz import fuzz  # ✅ fuzzy
+
+from utils_learn_modern import extract_modern_terms  # ✅ IMPORT INTELLIGENZA MODERNO
 
 # === Load ENV ===
 load_dotenv()
@@ -15,151 +19,203 @@ app = Flask(__name__)
 DB_NAME = "database_vintage"
 COLLECTION_NAME = "annunci"
 
-# === SINONIMI (completi) ===
-SINONIMI = {
-    "arredamento vintage": ["modernariato", "design vintage", "mobilio d epoca", "arredo retrò"],
-    "lampada vintage": ["lampadario retrò", "lampada d epoca", "lampada anni 70", "lampada a lava"],
-    "mobile vintage": ["cassettiera retrò", "comodino vintage", "tavolo vintage", "sedia vintage", "divano retrò"],
-    "specchio vintage": ["cornice retrò", "specchiera d epoca"],
-    "oggetto vintage": ["soprammobile retrò", "decorazione d epoca", "oggetti pubblicitari vintage"],
-    "giradischi": ["piatto vinile", "turntable", "lettore vinile", "radio giradischi", "mangiadischi"],
-    "vinile": ["disco lp", "record", "45 giri", "33 giri", "album vinile", "disco in vinile"],
-    "radio vintage": ["radio d epoca", "radio retrò", "radio a valvole", "radiolina"],
-    "jukebox": ["boombox", "musicassetta", "walkman", "lettore cd vintage"],
-    "strumento musicale vintage": ["chitarra elettrica anni 70", "amplificatore valvolare", "microfono retrò", "cuffie d epoca"],
-    "tv vintage": ["televisore d epoca", "televisore a tubo catodico", "televisore retrò", "tv anni 80", "decoder d epoca"],
-    "videoregistratore": ["vhs", "lettore videocassette", "videocamera vintage", "camcorder analogico"],
-    "fotocamera vintage": ["macchina fotografica vintage", "polaroid", "reflex analogica", "fotocamera d epoca", "analog camera"],
-    "cinepresa vintage": ["super8", "proiettore super8", "proiettore diapositive"],
-    "telefono vintage": ["telefono a disco", "telefono sip", "telefono fisso d epoca", "telefono anni 70"],
-    "computer vintage": ["commodore 64", "amiga", "spectrum", "apple 2", "macintosh classico", "ibm 386", "monitor crt", "stampante ad aghi", "mouse a sfera"],
-    "console vintage": ["game boy", "nintendo nes", "super nintendo", "sega megadrive", "atari", "joystick retrò", "flipper", "arcade"],
-    "giocattolo vintage": ["barbie d epoca", "lego vintage", "big jim", "action man", "gi joe vintage", "robot giocattolo", "transformers vintage", "masters of the universe", "tartarughe ninja vintage", "ghostbusters vintage"],
-    "auto d epoca": ["macchina vintage", "auto retrò", "modellino auto", "fiat 500 d epoca", "maggiolino", "mini cooper classica", "alfa romeo giulia"],
-    "moto d epoca": ["vespa", "lambretta", "motocicletta vintage"],
-    "accessori auto vintage": ["targa d epoca", "volante retrò", "contachilometri"],
-    "abiti vintage": ["vestiti d epoca", "moda retrò", "camicia hawaiana vintage", "pantaloni a zampa", "minigonna anni 60", "maglione anni 80", "giubbotto jeans vintage"],
-    "borsa vintage": ["borsetta anni 50", "handbag retrò", "pochette retrò", "zaino retrò"],
-    "orologio vintage": ["swatch vintage", "seiko automatico", "casio anni 80", "omega seamaster", "citizen d epoca", "pendolo vintage", "sveglia d epoca"],
-    "poster vintage": ["locandina film vintage", "manifesto retrò", "stampa anni 70", "insegna smaltata", "cartello in latta", "pubblicità d epoca", "insegna bar vintage"],
-    "fumetti vintage": ["topolino anni 60", "diabolik", "tex willer", "alan ford", "martin mystere", "dylan dog", "zagor", "corriere dei piccoli"],
-    "libro vintage": ["libro antico", "romanzo anni 50", "enciclopedia", "rivista vintage", "giornale d epoca"],
-    "strumenti da cucina vintage": ["moka d epoca", "bilancia retrò", "macinacaffè antico", "pentola smaltata", "servizio da tè vintage"],
-}
+# === Load synonyms ===
+def load_synonyms():
+    try:
+        with open("synonyms.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
 
+SINONIMI = load_synonyms()
+
+# === Espansione sinonimi ===
 def _espandi_sinonimi(query):
     q = query.lower()
-    lista = []
-    for chiave, sinonimi in SINONIMI.items():
-        if chiave in q or any(s in q for s in sinonimi):
-            lista.append(chiave)
-            lista.extend(sinonimi)
-    return list(dict.fromkeys(lista))
+    sinonimi = []
+    for key, lst in SINONIMI.items():
+        if key in q:
+            sinonimi.extend(lst)
+        for s in lst:
+            if s in q:
+                sinonimi.append(key)
+                sinonimi.extend(lst)
+
+    return list(dict.fromkeys(sinonimi))
+
+# === Fuzzy helper ===
+def fuzzy_match(query, text, threshold=65):
+    if not query or not text:
+        return False
+    return fuzz.partial_ratio(query.lower(), text.lower()) >= threshold
+
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
+
+###############################################################################
+# ✅ SEARCH — AGGIUNTA MODALITÀ "TUTTI"
+###############################################################################
 @app.route("/search")
 def search():
-    query = request.args.get("q", "")
-    fonte = request.args.get("fonte", "")
-    categoria = request.args.get("categoria", "")
-    prezzo_min = request.args.get("prezzo_min", "")
-    prezzo_max = request.args.get("prezzo_max", "")
-    sort = request.args.get("sort", "rilevanza")
-    page = max(1, int(request.args.get("page", 1)))
-    limit = 50
-    skip = (page - 1) * limit
+    q = (request.args.get("q") or "").strip()
+    era = request.args.get("era") or ""
+    vclass = request.args.get("vintage_class") or ""
+    category = (request.args.get("category") or "").strip()
+    sort = (request.args.get("sort") or "score").strip()
+
+    # ✅ nuovo parametro
+    scope = (request.args.get("scope") or "").strip().lower()
+
+    price_min = request.args.get("price_min")
+    price_max = request.args.get("price_max")
+    page = max(int(request.args.get("page", 1)), 1)
+    per_page = 50
 
     client = MongoClient(MONGO_URI)
     col = client[DB_NAME][COLLECTION_NAME]
 
-    pipeline = []
-
-    # === Search engine ===
-    if query:
-        sinonimi = _espandi_sinonimi(query)
-        pipeline.append({
-            "$search": {
-                "index": "default",
-                "compound": {
-                    "should": [
-                        {"text": {"query": query, "path": "title", "fuzzy": {"maxEdits": 1}, "score": {"boost": {"value": 6}}}},
-                        {"text": {"query": query, "path": "keywords", "fuzzy": {"maxEdits": 1}, "score": {"boost": {"value": 4}}}},
-                        {"text": {"query": query, "path": "description", "fuzzy": {"maxEdits": 1}, "score": {"boost": {"value": 2}}}},
-                    ] + (
-                        [{"text": {"query": sinonimi, "path": ["title","keywords"], "fuzzy":{"maxEdits":1}, "score":{"boost":{"value":1.5}}}}]
-                        if sinonimi else []
-                    )
-                }
-            }
-        })
+    # ✅ MODALITÀ TUTTI: nessun filtro
+    if scope == "tutti":
+        match = {}  # mostra tutto
     else:
-        pipeline.append({"$sort": {"scraped_at": -1}})
+        match = {"vintage_class": {"$ne": "non_vintage"}}
 
-    match = {}
-    if fonte: match["source"] = fonte
-    if categoria: match["category"] = categoria
-    if match: pipeline.append({"$match": match})
+    fallback_used = False
+    fuzzy_used = False
 
-    pipeline.append({
-        "$match": {
-            "title": {"$ne": "Titolo non disponibile"},
-            "price_value": {"$ne": None},
-            "price_currency": {"$exists": True}
+    # BUILD QUERY
+    def build_query(query_terms):
+        regex = "|".join([t.replace(" ", "\\s+") for t in query_terms])
+        return {
+            "$or": [
+                {"title": {"$regex": regex, "$options": "i"}},
+                {"description": {"$regex": regex, "$options": "i"}},
+                {"keywords": {"$in": [w.lower() for w in query_terms]}}
+            ]
         }
-    })
 
-    cutoff = datetime.utcnow() - timedelta(days=3)
-    pipeline.append({
-        "$addFields": {
-            "priority_score": {
-                "$add": [
-                    {"$cond":[{"$ifNull":["$image",False]},1,0]},
-                    {"$cond":[{"$ne":["$title","Titolo non disponibile"]},1,0]},
-                    {"$cond":[{"$ne":["$price_value",None]},1,0]},
-                    {"$cond":[{"$gte":["$scraped_at",cutoff.isoformat()]},0.5,0]}
-                ]
-            }
-        }
-    })
+    # ✅ ricerca testuale SOLO se non è scope=tutti
+    if scope != "tutti" and q:
+        sinonimi = _espandi_sinonimi(q)
+        search_terms = [q] + sinonimi
+        match.update(build_query(search_terms))
 
-    pipeline.append({
-        "$project": {
-            "_id": 1,
-            "title": 1, "price_value": 1, "price_currency": 1,
-            "image": 1, "url": 1, "source": 1,
-            "category": 1, "description": 1,
-            "scraped_at": 1, "priority_score": 1
-        }
-    })
+    # ✅ filtri normalizzati solo se non è "tutti"
+    if scope != "tutti":
+        if era:
+            match["era"] = era
+        if vclass:
+            match["vintage_class"] = vclass
+        if category:
+            match["category"] = {"$regex": f"^{category}$", "$options": "i"}
 
-    if sort == "prezzo_asc":
-        pipeline.append({"$sort": {"price_value": 1}})
-    elif sort == "prezzo_desc":
-        pipeline.append({"$sort": {"price_value": -1}})
-    elif sort == "recenti":
-        pipeline.append({"$sort": {"scraped_at": -1}})
+        price_filter = {}
+        if price_min: price_filter["$gte"] = float(price_min)
+        if price_max: price_filter["$lte"] = float(price_max)
+        if price_filter:
+            match["price_value"] = price_filter
+
+    # ✅ pipeline base comune
+    pipeline = [
+        {"$match": match},
+        {"$addFields": {
+            "price_num": {"$toDouble": "$price_value"},
+            "updated_dt": {"$toDate": "$updated_at"},
+            "created_dt": {"$toDate": "$created_at"},    # ✅ fondamentale per "tutti"
+            "era_weight": {"$cond": [{"$ne": ["$era", "vintage_generico"]}, 1, 0]}
+        }}
+    ]
+
+    # ✅ ordinamento MODALITÀ TUTTI
+    if scope == "tutti":
+        pipeline.append({"$sort": {
+            "created_dt": -1,   # ✅ i più recenti
+            "updated_dt": -1,
+            "_id": -1
+        }})
+
     else:
-        pipeline.append({"$sort": {"priority_score": -1, "scraped_at": -1}})
+        # ordinamenti normali
+        if sort == "price_asc":
+            pipeline.append({"$sort": {"price_num": 1}})
+        elif sort == "price_desc":
+            pipeline.append({"$sort": {"price_num": -1}})
+        elif sort == "date":
+            pipeline.append({"$sort": {"updated_dt": -1}})
+        elif sort == "added":
+            pipeline.append({"$sort": {"created_dt": -1}})
+        else:
+            pipeline.append({"$sort": {
+                "vintage_score": -1,
+                "era_weight": -1,
+                "updated_dt": -1
+            }})
 
-    pipeline += [{"$skip": skip}, {"$limit": limit}]
+    pipeline += [
+        {"$skip": (page - 1) * per_page},
+        {"$limit": per_page}
+    ]
 
+    # ✅ esecuzione
     results = list(col.aggregate(pipeline))
+
+    # ✅ fallback sinonimi & fuzzy SOLO se non è "tutti"
+    if scope != "tutti" and q and len(results) == 0:
+        sinonimi = _espandi_sinonimi(q)
+        if sinonimi:
+            fallback_used = True
+            match.update(build_query([q] + sinonimi))
+            pipeline[0] = {"$match": match}
+            results = list(col.aggregate(pipeline))
+
+    if scope != "tutti" and q and len(results) < 5:
+        prelim = list(col.find({"vintage_class": {"$ne": "non_vintage"}}))
+        fuzzy_matches = []
+
+        for item in prelim:
+            text = (item.get("title", "") + " " + item.get("description", ""))
+            if fuzzy_match(q, text):
+                fuzzy_matches.append(item)
+
+        if len(fuzzy_matches) > len(results):
+            fuzzy_used = True
+            start = (page - 1) * per_page
+            end = page * per_page
+            results = fuzzy_matches[start:end]
+
     client.close()
 
-    return render_template("results.html",
-        query=query, risultati=results,
-        fonte=fonte, categoria=categoria,
-        prezzo_min=prezzo_min, prezzo_max=prezzo_max,
-        sort=sort, page=page
+    return render_template(
+        "results.html",
+        query=q, risultati=results,
+        era=era, vintage_class=vclass,
+        category=category,
+        price_min=price_min, price_max=price_max,
+        sort=sort, page=page,
+        scope=scope,                 # ✅ lo passiamo al template
+        fallback_used=fallback_used,
+        fuzzy_used=fuzzy_used,
+        original_query=q
     )
 
+
+###############################################################################
+# ✅ Robots
+###############################################################################
 @app.route("/robots.txt")
 def robots_txt():
-    return Response("User-agent: *\nDisallow: /search\nSitemap: "+SITE_URL.rstrip("/")+"/sitemap.xml", mimetype="text/plain")
+    return Response(
+        "User-agent: *\nDisallow: /search\nSitemap: "+SITE_URL.rstrip("/")+"/sitemap.xml",
+        mimetype="text/plain"
+    )
 
+
+###############################################################################
+# ✅ Sitemap
+###############################################################################
 @app.route("/sitemap.xml")
 def sitemap_xml():
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -173,5 +229,44 @@ def sitemap_xml():
 </urlset>"""
     return Response(xml, mimetype="application/xml")
 
+
+###############################################################################
+# ✅ Remove item + auto-learn moderno
+###############################################################################
+@app.route("/remove_item", methods=["POST"])
+def remove_item():
+    data = request.get_json() or {}
+    item_hash = data.get("hash")
+    raw_title = data.get("title", "").strip()
+
+    if not item_hash:
+        return jsonify({"status": "error", "msg": "missing hash"}), 400
+
+    try:
+        client = MongoClient(MONGO_URI)
+        col = client[DB_NAME][COLLECTION_NAME]
+
+        res = col.delete_one({"hash": item_hash})
+
+        # auto-learn moderno
+        try:
+            extract_modern_terms(raw_title)
+        except Exception as e:
+            print("[WARN] modern auto-learn failed:", e)
+
+        client.close()
+
+        if res.deleted_count > 0:
+            return jsonify({"status": "ok"})
+        else:
+            return jsonify({"status": "error", "msg": "item not found"})
+
+    except Exception as e:
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+
+###############################################################################
+# ✅ RUN
+###############################################################################
 if __name__ == "__main__":
     app.run(debug=True)
