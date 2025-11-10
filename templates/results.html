@@ -6,111 +6,182 @@
   <title>{{ page_title }}</title>
 
   <meta name="description" content="Risultati per '{{ query }}' su RetroFuture Search: sfoglia oggetti vintage da più marketplace.">
+  <meta name="robots" content="noindex, follow">
 
-  <!-- Canonical -->
-  <link rel="canonical" href="{{ request.url_root }}search?q={{ query | urlencode }}{% if page>1 %}&page={{ page }}{% endif %}">
+  <link rel="canonical" href="{{ url_for('search',
+      q=query, era=era, vintage_class=vintage_class, category=category,
+      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page, _external=True) }}">
 
-  <!-- Prev/Next per SEO -->
   {% if page and page>1 %}
-  <link rel="prev" href="{{ url_for('search', q=query, fonte=fonte, categoria=categoria, prezzo_min=prezzo_min, prezzo_max=prezzo_max, sort=sort, page=page-1, _external=True) }}">
+  <link rel="prev" href="{{ url_for('search',
+      q=query, era=era, vintage_class=vintage_class, category=category,
+      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1, _external=True) }}">
   {% endif %}
   {% if risultati|length == 50 %}
-  <link rel="next" href="{{ url_for('search', q=query, fonte=fonte, categoria=categoria, prezzo_min=prezzo_min, prezzo_max=prezzo_max, sort=sort, page=page+1, _external=True) }}">
+  <link rel="next" href="{{ url_for('search',
+      q=query, era=era, vintage_class=vintage_class, category=category,
+      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1, _external=True) }}">
   {% endif %}
-
-  <!-- OG/Twitter -->
-  <meta property="og:title" content="{{ page_title }}">
-  <meta property="og:description" content="Risultati per '{{ query }}' su RetroFuture Search.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="{{ request.url }}">
-  <meta property="og:image" content="{{ request.url_root }}static/og-preview.png">
-
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="{{ page_title }}">
-  <meta name="twitter:description" content="Risultati per '{{ query }}' su RetroFuture Search.">
-  <meta name="twitter:image" content="{{ request.url_root }}static/og-preview.png">
-
-  <!-- Evita indicizzazione SERP -->
-  <meta name="robots" content="noindex, follow">
 
   <style>
     body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f4f4f4; }
-    h1 { margin-bottom: 12px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
-    .card { background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); transition: transform .15s; }
+
+    .card { position:relative; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); transition: transform .15s; }
     .card:hover { transform: translateY(-2px); }
+
+    /* pulsante admin */
+    .remove-btn {
+      position:absolute;
+      top:6px;
+      right:6px;
+      background:#d9534f;
+      border:none;
+      color:white;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:12px;
+      cursor:pointer;
+      display:none;
+      opacity:0.8;
+    }
+    .remove-btn:hover { opacity:1; background:#c9302c; }
+    body.admin .remove-btn { display:block !important; }
+
     .thumb { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #eee; }
     .title { margin: 8px 0 4px; font-weight: 600; font-size: 14px; color: #222; line-height: 1.3; height: 38px; overflow: hidden; }
     .price { color: #0a7; font-weight: 700; margin-bottom: 6px; }
-    .meta { display: flex; align-items: center; gap: 8px; }
-    .logo { height: 22px; opacity: .85; }
+
+    .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .logo {
+      height: 22px;
+      width: auto;
+      object-fit: contain;
+      opacity: .85;
+      display: block;
+    }
+
+    .dim { color:#666; font-size:12px; }
     a { text-decoration: none; color: inherit; }
 
-    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
-    .back { padding: 8px 12px; background: #fff; border-radius: 8px; border: 1px solid #ddd; text-decoration: none; color: #333; transition: background .2s; }
-    .back:hover { background: #fafafa; }
+    .toolbar, form.filters, form.searchbar { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center; }
+    form.filters, form.searchbar { background:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+    select,input { padding:6px 8px;border:1px solid #ccc;border-radius:6px; }
+    button { padding:6px 10px;border:none;background:#0a7;color:#fff;border-radius:6px;cursor:pointer; }
+    button:hover { background:#088; }
+    .back { padding:8px 12px;background:#fff;border-radius:8px;border:1px solid #ddd;color:#333; }
 
-    form.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); margin-bottom: 18px; }
-    select, input { padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; }
-    button { padding: 6px 10px; border: none; background: #0a7; color: #fff; border-radius: 6px; cursor: pointer; }
-    button:hover { background: #088; }
+    .pillbar { display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 16px; }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid #ddd; background:#fff; border-radius:999px; font-size:14px; }
+    .pill.active { border-color:#0a7; color:#0a7; font-weight:600; }
 
-    .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 32px; }
-    .pagination a { padding: 8px 14px; border-radius: 8px; background: white; border: 1px solid #ddd; color: #333; text-decoration: none; }
-    .pagination a:hover { background: #eee; }
-    .pagination span { font-weight: bold; color: #666; }
+    .admin-only { display:none; }
+    body.admin .admin-only { display:flex !important; }
 
-    form.searchbar { display: flex; gap: 8px; align-items: center; background: #fff; padding: 8px 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); margin-bottom: 16px; }
-    form.searchbar input[type="text"] { flex: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; }
-    form.searchbar button { padding: 6px 12px; background: #0a7; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
-    form.searchbar button:hover { background: #088; }
+    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; }
+    .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
 
-    .results-count { margin-bottom: 16px; color: #555; font-size: 15px; }
   </style>
+
+  <script>
+  document.addEventListener("keydown", e => {
+    if (e.altKey && e.key.toLowerCase() === "a") {
+      document.body.classList.toggle("admin");
+      alert("Admin mode " + (document.body.classList.contains("admin") ? "ATTIVA ✅" : "OFF ❌"));
+    }
+  });
+
+  function removeItem(hash, title){
+    if(!confirm("Eliminare e addestrare su questo oggetto?\n\n" + title)) return;
+
+    fetch("/remove_item", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({hash, title})
+    })
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.status==="ok"){
+        document.getElementById(hash)?.remove();
+      } else {
+        alert("Errore: "+(res.msg || "operazione non riuscita"));
+      }
+    });
+  }
+  </script>
+
 </head>
 <body>
 
   <div class="toolbar">
     <a href="/" class="back">← Nuova ricerca</a>
     <div>Risultati per: <strong>{{ query or 'tutto' }}</strong></div>
+    <div class="dim">Premi <b>ALT+A</b> per admin mode</div>
+  </div>
+
+  <!-- pillbar visibile solo in admin -->
+  <div class="pillbar admin-only">
+    <a class="pill {% if scope=='tutti' %}active{% endif %}"
+       href="{{ url_for('search',
+         q=None, era=None, vintage_class=None, category=None,
+         price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
+      👁️ Mostra tutti
+    </a>
+
+    <a class="pill {% if not scope or scope!='tutti' %}active{% endif %}"
+       href="{{ url_for('search',
+         q=query or '', era=era or '', vintage_class=vintage_class or '',
+         category=category or '', price_min=price_min, price_max=price_max,
+         sort=sort or 'score', scope=None, page=1) }}">
+      🔎 Ricerca filtrata
+    </a>
   </div>
 
   <form method="get" action="/search" class="searchbar">
     <input type="text" name="q" placeholder="Cerca un altro prodotto..." value="{{ query }}">
+    <input type="hidden" name="scope" value="{{ scope }}">
     <button type="submit">Cerca</button>
   </form>
 
   <form method="get" action="/search" class="filters">
     <input type="hidden" name="q" value="{{ query }}">
+    <input type="hidden" name="scope" value="{{ scope }}">
 
-    <select name="fonte">
-      <option value="">Tutte le fonti</option>
-      <option value="vinted" {% if fonte=='vinted' %}selected{% endif %}>Vinted</option>
-      <option value="ebay" {% if fonte=='ebay' %}selected{% endif %}>eBay</option>
-      <option value="subito" {% if fonte=='subito' %}selected{% endif %}>Subito</option>
-      <option value="mercatinousato" {% if fonte=='mercatinousato' %}selected{% endif %}>MercatinoUsato</option>
+    <select name="era" {% if scope=='tutti' %}disabled{% endif %}>
+      <option value="">Epoca</option>
+      {% for e in ['anni_50','anni_60','anni_70','anni_80','anni_90','vintage_generico'] %}
+      <option value="{{e}}" {% if era==e %}selected{% endif %}>{{e.replace('_',' ')}}</option>
+      {% endfor %}
     </select>
 
-    <select name="categoria">
-      <option value="">Tutte le categorie</option>
-      <option value="arredamento" {% if categoria=='arredamento' %}selected{% endif %}>Arredamento</option>
-      <option value="moda" {% if categoria=='moda' %}selected{% endif %}>Moda</option>
-      <option value="tecnologia" {% if categoria=='tecnologia' %}selected{% endif %}>Tecnologia</option>
-      <option value="collezionismo" {% if categoria=='collezionismo' %}selected{% endif %}>Collezionismo</option>
-      <option value="vario" {% if categoria=='vario' %}selected{% endif %}>Altro</option>
+    <select name="vintage_class" {% if scope=='tutti' %}disabled{% endif %}>
+      <option value="">Classe Vintage</option>
+      <option value="strong_vintage" {% if vintage_class=='strong_vintage' %}selected{% endif %}>Strong</option>
+      <option value="vintage" {% if vintage_class=='vintage' %}selected{% endif %}>Vintage</option>
     </select>
 
-    <input type="number" step="0.01" name="prezzo_min" placeholder="Prezzo min" value="{{ prezzo_min }}">
-    <input type="number" step="0.01" name="prezzo_max" placeholder="Prezzo max" value="{{ prezzo_max }}">
-
-    <select name="sort">
-      <option value="rilevanza" {% if sort=='rilevanza' %}selected{% endif %}>Rilevanza</option>
-      <option value="prezzo_asc" {% if sort=='prezzo_asc' %}selected{% endif %}>Prezzo crescente</option>
-      <option value="prezzo_desc" {% if sort=='prezzo_desc' %}selected{% endif %}>Prezzo decrescente</option>
-      <option value="recenti" {% if sort=='recenti' %}selected{% endif %}>Più recenti</option>
+    <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
+      <option value="">Categoria</option>
+      <option value="arredamento" {% if category=='arredamento' %}selected{% endif %}>Arredamento</option>
+      <option value="moda" {% if category=='moda' %}selected{% endif %}>Moda</option>
+      <option value="tecnologia" {% if category=='tecnologia' %}selected{% endif %}>Tecnologia</option>
+      <option value="collezionismo" {% if category=='collezionismo' %}selected{% endif %}>Collezionismo</option>
+      <option value="vario" {% if category=='vario' %}selected{% endif %}>Altro</option>
     </select>
 
-    <button type="submit">Applica</button>
+    <input type="number" step="0.01" name="price_min" placeholder="Min €" value="{{ price_min }}" {% if scope=='tutti' %}disabled{% endif %}>
+    <input type="number" step="0.01" name="price_max" placeholder="Max €" value="{{ price_max }}" {% if scope=='tutti' %}disabled{% endif %}>
+
+    <select name="sort" {% if scope=='tutti' %}disabled{% endif %}>
+      <option value="score" {% if sort=='score' %}selected{% endif %}>Migliori risultati</option>
+      <option value="date" {% if sort=='date' %}selected{% endif %}>Più recenti (aggiornati)</option>
+      <option value="added" {% if sort=='added' %}selected{% endif %}>Più recenti (aggiunti)</option>
+      <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Prezzo crescente</option>
+      <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Prezzo decrescente</option>
+    </select>
+
+    <button type="submit" {% if scope=='tutti' %}disabled{% endif %}>Applica</button>
   </form>
 
   <div class="results-count">
@@ -119,32 +190,32 @@
 
   <div class="grid">
     {% for r in risultati %}
-    <div class="card">
-      <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
-        <img class="thumb" src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}" alt="{{ r.title or r.titolo }}" loading="lazy" />
-        <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
-        
-        <!-- ✅ FIX universale prezzo -->
-        <div class="price">
-  {% if r.price_display %}
-      {{ r.price_display }}
-  {% elif r.price_value %}
-      {{ "%.2f"|format(r.price_value|float) }} EUR
-  {% else %}
-      Prezzo non disponibile
-  {% endif %}
-</div>
+    <div class="card" id="{{ r.hash }}">
+      <button class="remove-btn"
+        onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
 
+      <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
+
+        <img class="thumb" src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}" alt="{{ r.title or r.titolo }}" loading="lazy" />
+
+        <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
+
+        <div class="price">
+          {% if r.price_display %}
+            {{ r.price_display }}
+          {% elif r.price_value %}
+            {{ "%.2f"|format(r.price_value|float) }} EUR
+          {% else %}
+            Prezzo non disponibile
+          {% endif %}
+        </div>
 
         <div class="meta">
           {% if r.source %}
-            {% set logo_path = '/static/loghi/' + r.source|lower + '.png' %}
-            <img class="logo" src="{{ logo_path }}" alt="{{ r.source }}" onerror="this.style.display='none';">
-            <span>{{ r.source|capitalize }}</span>
-          {% else %}
-            <span>Fonte sconosciuta</span>
+            <img class="logo" src="/static/loghi/{{ r.source|lower }}.png" alt="{{ r.source }}">
           {% endif %}
         </div>
+
       </a>
     </div>
     {% endfor %}
@@ -152,14 +223,17 @@
 
   <div class="pagination">
     {% if page > 1 %}
-      <a href="?q={{ query }}&page={{ page - 1 }}&fonte={{ fonte }}&categoria={{ categoria }}&prezzo_min={{ prezzo_min }}&prezzo_max={{ prezzo_max }}&sort={{ sort }}">← Precedente</a>
+      <a href="{{ url_for('search',
+        q=query, era=era, vintage_class=vintage_class, category=category,
+        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
     {% endif %}
     <span>Pagina {{ page }}</span>
     {% if risultati|length == 50 %}
-      <a href="?q={{ query }}&page={{ page + 1 }}&fonte={{ fonte }}&categoria={{ categoria }}&prezzo_min={{ prezzo_min }}&prezzo_max={{ prezzo_max }}&sort={{ sort }}">Successiva →</a>
+      <a href="{{ url_for('search',
+        q=query, era=era, vintage_class=vintage_class, category=category,
+        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
     {% endif %}
   </div>
 
 </body>
 </html>
-
