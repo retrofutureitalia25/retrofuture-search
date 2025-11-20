@@ -82,7 +82,11 @@
     .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; }
     .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
 
-    html, body { overflow-x: hidden !important; }
+    html, body {
+    overflow: hidden !important;
+    height: auto !important;
+}
+
 
 
   </style>
@@ -249,6 +253,11 @@ sendHeight();
 // invio ogni volta che cambia il layout
 setInterval(sendHeight, 400);
 </script>
+  <script>
+document.documentElement.style.overflow = "hidden";
+document.body.style.overflow = "hidden";
+</script>
+
   
 </body>
 </html>
