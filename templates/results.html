@@ -8,26 +8,19 @@
   <meta name="description" content="Risultati per '{{ query }}' su RetroFuture Search: sfoglia oggetti vintage da più marketplace.">
   <meta name="robots" content="noindex, follow">
 
-  <link rel="canonical" href="{{ url_for('search',
-      q=query, era=era, vintage_class=vintage_class, category=category,
-      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page, _external=True) }}">
-
-  {% if page and page>1 %}
-  <link rel="prev" href="{{ url_for('search',
-      q=query, era=era, vintage_class=vintage_class, category=category,
-      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1, _external=True) }}">
-  {% endif %}
-  {% if risultati|length == 50 %}
-  <link rel="next" href="{{ url_for('search',
-      q=query, era=era, vintage_class=vintage_class, category=category,
-      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1, _external=True) }}">
-  {% endif %}
-
   <style>
-    body {
-      font-family: system-ui, Arial, sans-serif;
-      margin: 24px;
+    /* 🔥 NO SCROLL INTERNO */
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
       background: #f4f4f4;
+      font-family: system-ui, Arial, sans-serif;
+    }
+
+    /* 🔥 Spazio interno per respirare — gestito da un wrapper */
+    #rf-wrapper {
+      padding: 24px;
     }
 
     .grid {
@@ -37,16 +30,17 @@
     }
 
     .card {
-      position:relative;
       background: #fff;
       border-radius: 12px;
       padding: 10px;
       box-shadow: 0 2px 6px rgba(0,0,0,.08);
       transition: transform .15s;
+      position: relative;
     }
-    .card:hover { transform: translateY(-2px); }
+    .card:hover {
+      transform: translateY(-2px);
+    }
 
-    /* pulsante admin */
     .remove-btn {
       position:absolute;
       top:6px;
@@ -95,8 +89,6 @@
 
     .logo {
       height: 22px;
-      width: auto;
-      object-fit: contain;
       opacity: .85;
       display: block;
     }
@@ -112,10 +104,6 @@
       gap:8px;
       margin-bottom:16px;
       align-items:center;
-    }
-
-    form.filters,
-    form.searchbar {
       background:#fff;
       padding:8px 12px;
       border-radius:8px;
@@ -168,9 +156,6 @@
       font-weight:600;
     }
 
-    .admin-only { display:none; }
-    body.admin .admin-only { display:flex !important; }
-
     .pagination {
       display:flex;
       justify-content:center;
@@ -185,35 +170,10 @@
     }
   </style>
 
-  <script>
-  document.addEventListener("keydown", e => {
-    if (e.altKey && e.key.toLowerCase() === "a") {
-      document.body.classList.toggle("admin");
-      alert("Admin mode " + (document.body.classList.contains("admin") ? "ATTIVA ✅" : "OFF ❌"));
-    }
-  });
-
-  function removeItem(hash, title){
-    if(!confirm("Eliminare e addestrare su questo oggetto?\n\n" + title)) return;
-
-    fetch("/remove_item", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({hash, title})
-    })
-    .then(r=>r.json())
-    .then(res=>{
-      if(res.status==="ok"){
-        document.getElementById(hash)?.remove();
-      } else {
-        alert("Errore: "+(res.msg || "operazione non riuscita"));
-      }
-    });
-  }
-  </script>
-
 </head>
 <body>
+
+<div id="rf-wrapper">
 
   <div class="toolbar">
     <a href="/" class="back">← Nuova ricerca</a>
@@ -221,20 +181,15 @@
     <div class="dim">Premi <b>ALT+A</b> per admin mode</div>
   </div>
 
-  <!-- pillbar visibile solo in admin -->
+  <!-- pillbar admin -->
   <div class="pillbar admin-only">
     <a class="pill {% if scope=='tutti' %}active{% endif %}"
-       href="{{ url_for('search',
-         q=None, era=None, vintage_class=None, category=None,
-         price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
+       href="{{ url_for('search', q=None, era=None, vintage_class=None, category=None, price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
       👁️ Mostra tutti
     </a>
 
     <a class="pill {% if not scope or scope!='tutti' %}active{% endif %}"
-       href="{{ url_for('search',
-         q=query or '', era=era or '', vintage_class=vintage_class or '',
-         category=category or '', price_min=price_min, price_max=price_max,
-         sort=sort or 'score', scope=None, page=1) }}">
+       href="{{ url_for('search', q=query or '', era=era or '', vintage_class=vintage_class or '', category=category or '', price_min=price_min, price_max=price_max, sort=sort or 'score', scope=None, page=1) }}">
       🔎 Ricerca filtrata
     </a>
   </div>
@@ -292,15 +247,11 @@
   <div class="grid">
     {% for r in risultati %}
     <div class="card" id="{{ r.hash }}">
-      <button class="remove-btn"
-        onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
+      <button class="remove-btn" onclick="removeItem('{{ r.hash }}', '{{ r.title }}')">🗑️</button>
 
-      <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
-
-        <img class="thumb" src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}" alt="{{ r.title or r.titolo }}" loading="lazy" />
-
-        <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
-
+      <a href="{{ r.url }}" target="_blank" rel="noopener">
+        <img class="thumb" src="{{ r.image }}" alt="{{ r.title }}" loading="lazy" />
+        <div class="title">{{ r.title }}</div>
         <div class="price">
           {% if r.price_display %}
             {{ r.price_display }}
@@ -316,7 +267,6 @@
             <img class="logo" src="/static/loghi/{{ r.source|lower }}.png" alt="{{ r.source }}">
           {% endif %}
         </div>
-
       </a>
     </div>
     {% endfor %}
@@ -324,31 +274,28 @@
 
   <div class="pagination">
     {% if page > 1 %}
-      <a href="{{ url_for('search',
-        q=query, era=era, vintage_class=vintage_class, category=category,
-        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
+      <a href="{{ url_for('search', q=query, era=era, vintage_class=vintage_class, category=category,
+                      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
     {% endif %}
     <span>Pagina {{ page }}</span>
     {% if risultati|length == 50 %}
-      <a href="{{ url_for('search',
-        q=query, era=era, vintage_class=vintage_class, category=category,
-        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
+      <a href="{{ url_for('search', q=query, era=era, vintage_class=vintage_class, category=category,
+                      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
     {% endif %}
   </div>
 
-  <!-- script per inviare l'altezza al parent (WordPress) -->
-  <script>
-  function sendHeight() {
-    const h = document.body.scrollHeight;
-    window.parent.postMessage({ rf_height: h }, "*");
-  }
+</div>
 
-  // invio iniziale
-  sendHeight();
+<!-- 🔥 Altezza auto del contenuto verso WordPress -->
+<script>
+function updateHeight() {
+  const newH = document.body.scrollHeight;
+  window.parent.postMessage({ rf_height: newH }, "*");
+}
 
-  // invio periodico per catturare cambi layout
-  setInterval(sendHeight, 400);
-  </script>
+new ResizeObserver(updateHeight).observe(document.body);
+updateHeight();
+</script>
 
 </body>
 </html>
