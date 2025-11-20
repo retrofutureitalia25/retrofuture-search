@@ -234,6 +234,18 @@
         price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
     {% endif %}
   </div>
+<script>
+function sendHeight() {
+  const h = document.body.scrollHeight;
+  window.parent.postMessage({ rf_height: h }, "*");
+}
 
+// invio iniziale
+sendHeight();
+
+// invio ogni volta che cambia il layout
+setInterval(sendHeight, 400);
+</script>
+  
 </body>
 </html>
