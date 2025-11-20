@@ -24,10 +24,26 @@
   {% endif %}
 
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f4f4f4; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 24px;
+      background: #f4f4f4;
+    }
 
-    .card { position:relative; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); transition: transform .15s; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+      gap: 16px;
+    }
+
+    .card {
+      position:relative;
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+      transition: transform .15s;
+    }
     .card:hover { transform: translateY(-2px); }
 
     /* pulsante admin */
@@ -48,11 +64,34 @@
     .remove-btn:hover { opacity:1; background:#c9302c; }
     body.admin .remove-btn { display:block !important; }
 
-    .thumb { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #eee; }
-    .title { margin: 8px 0 4px; font-weight: 600; font-size: 14px; color: #222; line-height: 1.3; height: 38px; overflow: hidden; }
-    .price { color: #0a7; font-weight: 700; margin-bottom: 6px; }
+    .thumb {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #eee;
+    }
+    .title {
+      margin: 8px 0 4px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #222;
+      line-height: 1.3;
+      height: 38px;
+      overflow: hidden;
+    }
+    .price {
+      color: #0a7;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
 
-    .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
     .logo {
       height: 22px;
@@ -65,30 +104,85 @@
     .dim { color:#666; font-size:12px; }
     a { text-decoration: none; color: inherit; }
 
-    .toolbar, form.filters, form.searchbar { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center; }
-    form.filters, form.searchbar { background:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05); }
-    select,input { padding:6px 8px;border:1px solid #ccc;border-radius:6px; }
-    button { padding:6px 10px;border:none;background:#0a7;color:#fff;border-radius:6px;cursor:pointer; }
-    button:hover { background:#088; }
-    .back { padding:8px 12px;background:#fff;border-radius:8px;border:1px solid #ddd;color:#333; }
+    .toolbar,
+    form.filters,
+    form.searchbar {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:16px;
+      align-items:center;
+    }
 
-    .pillbar { display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 16px; }
-    .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid #ddd; background:#fff; border-radius:999px; font-size:14px; }
-    .pill.active { border-color:#0a7; color:#0a7; font-weight:600; }
+    form.filters,
+    form.searchbar {
+      background:#fff;
+      padding:8px 12px;
+      border-radius:8px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    select,input {
+      padding:6px 8px;
+      border:1px solid #ccc;
+      border-radius:6px;
+    }
+
+    button {
+      padding:6px 10px;
+      border:none;
+      background:#0a7;
+      color:#fff;
+      border-radius:6px;
+      cursor:pointer;
+    }
+    button:hover { background:#088; }
+
+    .back {
+      padding:8px 12px;
+      background:#fff;
+      border-radius:8px;
+      border:1px solid #ddd;
+      color:#333;
+    }
+
+    .pillbar {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin: 8px 0 16px;
+    }
+    .pill {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border:1px solid #ddd;
+      background:#fff;
+      border-radius:999px;
+      font-size:14px;
+    }
+    .pill.active {
+      border-color:#0a7;
+      color:#0a7;
+      font-weight:600;
+    }
 
     .admin-only { display:none; }
     body.admin .admin-only { display:flex !important; }
 
-    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; }
-    .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
-
-    html, body {
-    overflow: hidden !important;
-    height: auto !important;
-}
-
-
-
+    .pagination {
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-top:32px;
+    }
+    .pagination a {
+      padding:8px 14px;
+      border-radius:8px;
+      background:white;
+      border:1px solid #ddd;
+    }
   </style>
 
   <script>
@@ -241,23 +335,21 @@
         price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
     {% endif %}
   </div>
-<script>
-function sendHeight() {
-  const h = document.body.scrollHeight;
-  window.parent.postMessage({ rf_height: h }, "*");
-}
 
-// invio iniziale
-sendHeight();
-
-// invio ogni volta che cambia il layout
-setInterval(sendHeight, 400);
-</script>
+  <!-- script per inviare l'altezza al parent (WordPress) -->
   <script>
-document.documentElement.style.overflow = "hidden";
-document.body.style.overflow = "hidden";
-</script>
+  function sendHeight() {
+    const h = document.body.scrollHeight;
+    window.parent.postMessage({ rf_height: h }, "*");
+  }
 
-  
+  // invio iniziale
+  sendHeight();
+
+  // invio periodico per catturare cambi layout
+  setInterval(sendHeight, 400);
+  </script>
+
 </body>
 </html>
+
