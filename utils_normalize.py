@@ -4,7 +4,9 @@
 #    • Filtro aste
 #    • Filtro ricambi/motori SOLO eBay
 #    • Filtri bici moderne + boost bici vintage
-#    • ✅ Patch MERCATINO:
+#    • NEW: Supporto modern_keywords_extended.json
+#    • NEW: Super filtro anti-moderno
+#    • Patch MERCATINO:
 #         1) blocco annunci senza titolo
 #         2) blocco annunci senza URL
 #         3) blocco duplicati tramite hash_cache
@@ -17,7 +19,7 @@ import os
 from hashlib import sha1
 from datetime import datetime, UTC
 
-from utils_log import log_event   # ✅ per loggare scarti ricambi
+from utils_log import log_event   # per loggare scarti ricambi
 
 
 #############################################################
@@ -80,6 +82,25 @@ retro_terms = {k for k in vintage_terms if "retro" in k or "retrò" in k or "vin
 retro_terms |= {"retro", "stile vintage", "look retrò"}
 
 
+#############################################################
+# 🔥 NEW — Caricamento moderno esteso
+#############################################################
+
+modern_ext = load_json("modern_keywords_extended.json")
+
+modern_ext_terms = set()
+
+if isinstance(modern_ext, dict):
+    for key, values in modern_ext.items():
+        if isinstance(values, list):
+            for v in values:
+                modern_ext_terms.add(str(v).strip().lower())
+
+elif isinstance(modern_ext, list):
+    for v in modern_ext:
+        modern_ext_terms.add(str(v).strip().lower())
+
+
 
 #############################################################
 # ✅ ERA detection
@@ -118,6 +139,27 @@ def classify_vintage_status(text):
     score = 0
     vclass = "vintage_generico"
 
+    #########################################################
+    # ❌ NEW — Filtro modern EXTENDED (priorità assoluta)
+    #########################################################
+    for term in modern_ext_terms:
+        if term and term in text_low:
+            return "non_vintage", -30
+
+        # frasi composte tipo "google pixel 7 pro"
+        if " " in term and term in text_low:
+            return "non_vintage", -25
+
+    #########################################################
+    # ❌ Filtro modern learned
+    #########################################################
+    for term in modern_learned:
+        if term in text_low:
+            return "non_vintage", -20
+
+    #########################################################
+    # ❌ Filtri bici moderne
+    #########################################################
     modern_bike_patterns = [
         "e-bike", "ebike", "bici elettrica",
         "mountain bike", "mtb",
@@ -130,10 +172,9 @@ def classify_vintage_status(text):
         if pat in text_low:
             return "non_vintage", -10
 
-    for term in modern_learned:
-        if term in text_low:
-            return "non_vintage", -20
-
+    #########################################################
+    # ❌ Modern patterns storici
+    #########################################################
     modern_patterns = [
         r"\biphone\b", r"\bipad\b", r"\bps5\b",
         r"\bsamsung\b",
@@ -152,6 +193,10 @@ def classify_vintage_status(text):
     for m in modern_auto:
         if m in text_low:
             return "non_vintage", -10
+
+    #########################################################
+    # Vintage detection
+    #########################################################
 
     for w in vintage_terms:
         if w in text_low:
@@ -283,7 +328,7 @@ def normalizza_annuncio(raw, source_name):
     era = detect_era(full_text)
 
     #############################################################
-    # ✅ PREZZO FIX 2025 (supporta 1.490,00 – 1490 – €2.300,50 ecc)
+    # PREZZO FIX 2025
     #############################################################
     
     prezzo_raw = str(raw.get("price") or raw.get("prezzo") or "").strip()
@@ -302,8 +347,6 @@ def normalizza_annuncio(raw, source_name):
             prezzo_val = float(clean)
         except:
             prezzo_val = 0.0
-
-    #############################################################
 
     image = raw.get("image") or raw.get("img") or raw.get("immagine") or ""
     location = raw.get("location") or ""
