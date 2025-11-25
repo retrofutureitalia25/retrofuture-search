@@ -1,19 +1,20 @@
+aggiornami tutto il file completo:
 # app.py
 import os, json, re
 from datetime import datetime
 from flask import Flask, request, render_template, Response, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz  # ✅ fuzzy
 
-from utils_learn_modern import extract_modern_terms
-
+from utils_learn_modern import extract_modern_terms  # ✅ IMPORT INTELLIGENZA MODERNO
 
 # === Load ENV ===
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 SITE_URL = os.getenv("SITE_URL", "http://localhost:5000")
 
+# === Flask ===
 app = Flask(__name__)
 
 DB_NAME = "database_vintage"
@@ -21,7 +22,7 @@ COLLECTION_NAME = "annunci"
 
 
 # ============================================================
-# 🔹 UTIL
+# 🔹 UTIL: normalizzazione testo
 # ============================================================
 def _norm_text(s: str) -> str:
     if not s:
@@ -105,7 +106,7 @@ def _espandi_sinonimi(query: str):
 
 
 # ============================================================
-# 🔹 Fuzzy
+# 🔹 Fuzzy helper
 # ============================================================
 def fuzzy_match(query, text, threshold=65):
     if not query or not text:
@@ -119,7 +120,7 @@ def index():
 
 
 ###############################################################################
-# ✅ SEARCH
+# ✅ SEARCH — AGGIUNTA MODALITÀ "TUTTI"
 ###############################################################################
 @app.route("/search")
 def search():
@@ -128,6 +129,7 @@ def search():
     vclass = request.args.get("vintage_class") or ""
     category = (request.args.get("category") or "").strip()
     sort = (request.args.get("sort") or "score").strip()
+
     scope = (request.args.get("scope") or "").strip().lower()
 
     price_min = request.args.get("price_min")
@@ -138,7 +140,10 @@ def search():
     client = MongoClient(MONGO_URI)
     col = client[DB_NAME][COLLECTION_NAME]
 
-    match = {} if scope == "tutti" else {"vintage_class": {"$ne": "non_vintage"}}
+    if scope == "tutti":
+        match = {}
+    else:
+        match = {"vintage_class": {"$ne": "non_vintage"}}
 
     fallback_used = False
     fuzzy_used = False
@@ -153,6 +158,7 @@ def search():
                 continue
             if len(nt) < 2 and " " not in nt:
                 continue
+
             norm_terms.append(nt)
             pattern = re.escape(nt).replace(r"\ ", r"\s+")
             regex_parts.append(pattern)
@@ -161,6 +167,7 @@ def search():
             return {}
 
         regex = "|".join(regex_parts)
+
         return {
             "$or": [
                 {"title": {"$regex": regex, "$options": "i"}},
@@ -209,9 +216,10 @@ def search():
         },
     ]
 
-    # ordinamento
     if scope == "tutti":
-        pipeline.append({"$sort": {"created_dt": -1, "updated_dt": -1, "_id": -1}})
+        pipeline.append(
+            {"$sort": {"created_dt": -1, "updated_dt": -1, "_id": -1}}
+        )
     else:
         if sort == "price_asc":
             pipeline.append({"$sort": {"price_num": 1}})
@@ -222,13 +230,15 @@ def search():
         elif sort == "added":
             pipeline.append({"$sort": {"created_dt": -1}})
         else:
-            pipeline.append({
-                "$sort": {
-                    "vintage_score": -1,
-                    "era_weight": -1,
-                    "updated_dt": -1,
+            pipeline.append(
+                {
+                    "$sort": {
+                        "vintage_score": -1,
+                        "era_weight": -1,
+                        "updated_dt": -1,
+                    }
                 }
-            })
+            )
 
     pipeline += [
         {"$skip": (page - 1) * per_page},
@@ -237,7 +247,7 @@ def search():
 
     results = list(col.aggregate(pipeline))
 
-    # Fallback sinonimi
+    # Fallback & fuzzy
     if scope != "tutti" and q and len(results) == 0:
         sinonimi = _espandi_sinonimi(q)
         if sinonimi:
@@ -251,10 +261,10 @@ def search():
                 pipeline[0] = {"$match": match}
                 results = list(col.aggregate(pipeline))
 
-    # Fuzzy
     if scope != "tutti" and q and len(results) < 5:
         prelim = list(col.find({"vintage_class": {"$ne": "non_vintage"}}))
         fuzzy_matches = []
+
         for item in prelim:
             text = (item.get("title", "") + " " + item.get("description", ""))
             if fuzzy_match(q, text):
@@ -317,7 +327,7 @@ def sitemap_xml():
 
 
 ###############################################################################
-# ❌ Remove item (usa ancora Mongo)
+# ✅ Remove item + auto-learn moderno
 ###############################################################################
 @app.route("/remove_item", methods=["POST"])
 def remove_item():
@@ -351,49 +361,38 @@ def remove_item():
 
 
 ###############################################################################
-# ✅ TRACK CLICK — SOLO FILE (NO MONGO)
+# ✅ TRACK CLICK — AUTO-LEARN SINONIMI
 ###############################################################################
 @app.route("/track_click", methods=["POST"])
 def track_click():
-
-    data = request.get_json() or {}
-
-    raw_query = (data.get("query") or "").strip().lower()
-    raw_title = (data.get("title") or "").strip().lower()
-
-    if not raw_query or not raw_title:
-        return jsonify({"status": "error", "msg": "missing data"}), 400
-
-    entry = {
-        "query": raw_query,
-        "title": raw_title,
-        "created_at": datetime.utcnow().isoformat()
-    }
-
-    LOG_FILE = "click_log.json"
-
     try:
-        # leggo o creo
-        if os.path.exists(LOG_FILE):
-            with open(LOG_FILE, "r", encoding="utf-8") as f:
-                logs = json.load(f)
-        else:
-            logs = []
+        data = request.get_json() or {}
 
-        logs.append(entry)
+        raw_query = (data.get("query") or "").strip().lower()
+        raw_title = (data.get("title") or "").strip().lower()
 
-        with open(LOG_FILE, "w", encoding="utf-8") as f:
-            json.dump(logs, f, indent=2, ensure_ascii=False)
+        if not raw_query or not raw_title:
+            return jsonify({"status": "error", "msg": "missing data"}), 400
 
+        client = MongoClient(MONGO_URI)
+        col = client[DB_NAME]["auto_synonyms"]
+
+        col.insert_one({
+            "query": raw_query,
+            "title": raw_title,
+            "created_at": datetime.utcnow()
+        })
+
+        client.close()
         return jsonify({"status": "ok"})
 
     except Exception as e:
+        print("[TRACK_CLICK ERROR]", e)
         return jsonify({"status": "error", "msg": str(e)}), 500
 
 
 ###############################################################################
-# RUN
+# ✅ RUN
 ###############################################################################
 if __name__ == "__main__":
     app.run(debug=True)
-
