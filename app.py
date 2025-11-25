@@ -1,4 +1,3 @@
-aggiornami tutto il file completo:
 # app.py
 import os, json, re
 from datetime import datetime
