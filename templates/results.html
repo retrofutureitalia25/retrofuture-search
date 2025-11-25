@@ -252,9 +252,11 @@
     <div class="card" id="{{ r.hash }}">
       <button class="remove-btn" onclick="removeItem('{{ r.hash }}', '{{ r.title }}')">🗑️</button>
 
-      <!-- 🔥 TRACK CLICK -->
+      <!-- TRACK CLICK SICURO -->
       <a href="{{ r.url }}" target="_blank" rel="noopener"
-         onclick="trackClick('{{ query|escapejs }}', '{{ r.title|escapejs }}')">
+         data-query="{{ query }}"
+         data-title="{{ r.title }}"
+         onclick="trackClick(event)">
 
         <img class="thumb" src="{{ r.image }}" alt="{{ r.title }}" loading="lazy" />
         <div class="title">{{ r.title }}</div>
@@ -293,7 +295,7 @@
 
 </div>
 
-<!-- 🔥 AUTO HEIGHT -->
+<!-- AUTO HEIGHT -->
 <script>
 function updateHeight() {
   const newH = document.body.scrollHeight;
@@ -303,23 +305,23 @@ new ResizeObserver(updateHeight).observe(document.body);
 updateHeight();
 </script>
 
-<!-- 🔥 AUTO-LEARN: TRACK CLICK -->
+<!-- AUTO-LEARN: TRACK CLICK SICURO -->
 <script>
-function trackClick(query, title) {
+function trackClick(event) {
+    const el = event.currentTarget;
+    const query = el.dataset.query || "";
+    const title = el.dataset.title || "";
+
     fetch("/track_click", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            query: query,
-            title: title
-        })
+        body: JSON.stringify({ query, title })
     });
 }
 </script>
 
-<!-- 🔥 MODALITÀ ADMIN -->
+<!-- MODALITÀ ADMIN -->
 <script>
-// Legge ?admin=1
 const urlParams = new URLSearchParams(window.location.search);
 const isAdmin = urlParams.get("admin") === "1";
 
@@ -329,12 +331,10 @@ function enableAdminMode() {
   document.querySelectorAll(".remove-btn").forEach(btn => btn.style.display = "block");
 }
 
-// 1) Admin via URL
 if (isAdmin) {
   document.addEventListener("DOMContentLoaded", enableAdminMode);
 }
 
-// 2) Admin via WordPress iframe
 window.addEventListener("message", function(event) {
   if (event.data?.action === "enable-admin") {
     enableAdminMode();
