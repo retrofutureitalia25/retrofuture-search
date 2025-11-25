@@ -29,7 +29,6 @@ def _norm_text(s: str) -> str:
     s = str(s).lower()
     s = s.replace("’", "'").replace("‘", "'")
     s = s.replace("`", "'")
-    # togli doppi spazi
     while "  " in s:
         s = s.replace("  ", " ")
     return s.strip()
@@ -40,10 +39,6 @@ def _tokenize(s: str):
 
 
 def _generate_ngrams(tokens, max_len=4):
-    """
-    Genera frasi (n-grammi) di lunghezza 1..max_len
-    es: ["tv","vintage","philips"] -> "tv", "tv vintage", "tv vintage philips", "vintage", ...
-    """
     ngrams = set()
     n = len(tokens)
     for i in range(n):
@@ -53,7 +48,7 @@ def _generate_ngrams(tokens, max_len=4):
 
 
 # ============================================================
-# 🔹 Load synonyms (normalizzati)
+# 🔹 Load synonyms
 # ============================================================
 def load_synonyms():
     try:
@@ -75,15 +70,9 @@ SINONIMI = load_synonyms()
 
 
 # ============================================================
-# 🔹 Espansione sinonimi (frasi intere, niente substring sporche)
+# 🔹 Espansione sinonimi
 # ============================================================
 def _espandi_sinonimi(query: str):
-    """
-    Espansione bidirezionale:
-    - se la query contiene una chiave (come frase), aggiungo i suoi valori
-    - se la query contiene uno dei valori (come frase), aggiungo la chiave + tutti i valori
-    Matching SOLO su parole intere (ngram), NON su substring dentro altre parole.
-    """
     q_norm = _norm_text(query)
     if not q_norm:
         return []
@@ -92,23 +81,18 @@ def _espandi_sinonimi(query: str):
     if not tokens:
         return []
 
-    ngrams = _generate_ngrams(tokens, max_len=4)  # frasi fino a 4 parole
-
+    ngrams = _generate_ngrams(tokens, max_len=4)
     candidates = []
 
     for key, lst in SINONIMI.items():
-        # match se la chiave è una delle frasi della query
         if key in ngrams:
             candidates.extend(lst)
-
-        # match se uno dei valori è una delle frasi della query
         for s in lst:
             if s in ngrams:
                 candidates.append(key)
                 candidates.extend(lst)
-                break  # evitiamo duplicazioni inutili
+                break
 
-    # dedup preservando l'ordine
     seen = set()
     result = []
     for s in candidates:
@@ -145,7 +129,6 @@ def search():
     category = (request.args.get("category") or "").strip()
     sort = (request.args.get("sort") or "score").strip()
 
-    # ✅ nuovo parametro
     scope = (request.args.get("scope") or "").strip().lower()
 
     price_min = request.args.get("price_min")
@@ -156,16 +139,14 @@ def search():
     client = MongoClient(MONGO_URI)
     col = client[DB_NAME][COLLECTION_NAME]
 
-    # ✅ MODALITÀ TUTTI: nessun filtro
     if scope == "tutti":
-        match = {}  # mostra tutto
+        match = {}
     else:
         match = {"vintage_class": {"$ne": "non_vintage"}}
 
     fallback_used = False
     fuzzy_used = False
 
-    # BUILD QUERY
     def build_query(query_terms):
         norm_terms = []
         regex_parts = []
@@ -174,12 +155,10 @@ def search():
             nt = _norm_text(t)
             if not nt:
                 continue
-            # opzionale: evita termini 1 lettera inutili
             if len(nt) < 2 and " " not in nt:
                 continue
 
             norm_terms.append(nt)
-            # escape sicuro + spazio flessibile
             pattern = re.escape(nt).replace(r"\ ", r"\s+")
             regex_parts.append(pattern)
 
@@ -196,10 +175,8 @@ def search():
             ]
         }
 
-    # ✅ ricerca testuale SOLO se non è scope=tutti
     if scope != "tutti" and q:
         sinonimi = _espandi_sinonimi(q)
-        # includo anche la query normalizzata e i token singoli
         q_norm = _norm_text(q)
         tokens = _tokenize(q)
         search_terms = [q_norm] + tokens + sinonimi
@@ -208,7 +185,6 @@ def search():
         if query_block:
             match.update(query_block)
 
-    # ✅ filtri normalizzati solo se non è "tutti"
     if scope != "tutti":
         if era:
             match["era"] = era
@@ -225,14 +201,13 @@ def search():
         if price_filter:
             match["price_value"] = price_filter
 
-    # ✅ pipeline base comune
     pipeline = [
         {"$match": match},
         {
             "$addFields": {
                 "price_num": {"$toDouble": "$price_value"},
                 "updated_dt": {"$toDate": "$updated_at"},
-                "created_dt": {"$toDate": "$created_at"},  # ✅ fondamentale per "tutti"
+                "created_dt": {"$toDate": "$created_at"},
                 "era_weight": {
                     "$cond": [{"$ne": ["$era", "vintage_generico"]}, 1, 0]
                 },
@@ -240,20 +215,11 @@ def search():
         },
     ]
 
-    # ✅ ordinamento MODALITÀ TUTTI
     if scope == "tutti":
         pipeline.append(
-            {
-                "$sort": {
-                    "created_dt": -1,  # ✅ i più recenti
-                    "updated_dt": -1,
-                    "_id": -1,
-                }
-            }
+            {"$sort": {"created_dt": -1, "updated_dt": -1, "_id": -1}}
         )
-
     else:
-        # ordinamenti normali
         if sort == "price_asc":
             pipeline.append({"$sort": {"price_num": 1}})
         elif sort == "price_desc":
@@ -278,10 +244,9 @@ def search():
         {"$limit": per_page},
     ]
 
-    # ✅ esecuzione
     results = list(col.aggregate(pipeline))
 
-    # ✅ fallback sinonimi & fuzzy SOLO se non è "tutti"
+    # Fallback & fuzzy
     if scope != "tutti" and q and len(results) == 0:
         sinonimi = _espandi_sinonimi(q)
         if sinonimi:
@@ -323,7 +288,7 @@ def search():
         price_max=price_max,
         sort=sort,
         page=page,
-        scope=scope,  # ✅ lo passiamo al template
+        scope=scope,
         fallback_used=fallback_used,
         fuzzy_used=fuzzy_used,
         original_query=q,
@@ -378,7 +343,6 @@ def remove_item():
 
         res = col.delete_one({"hash": item_hash})
 
-        # auto-learn moderno
         try:
             extract_modern_terms(raw_title)
         except Exception as e:
@@ -392,6 +356,37 @@ def remove_item():
             return jsonify({"status": "error", "msg": "item not found"})
 
     except Exception as e:
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+
+###############################################################################
+# ✅ TRACK CLICK — AUTO-LEARN SINONIMI
+###############################################################################
+@app.route("/track_click", methods=["POST"])
+def track_click():
+    try:
+        data = request.get_json() or {}
+
+        raw_query = (data.get("query") or "").strip().lower()
+        raw_title = (data.get("title") or "").strip().lower()
+
+        if not raw_query or not raw_title:
+            return jsonify({"status": "error", "msg": "missing data"}), 400
+
+        client = MongoClient(MONGO_URI)
+        col = client[DB_NAME]["auto_synonyms"]
+
+        col.insert_one({
+            "query": raw_query,
+            "title": raw_title,
+            "created_at": datetime.utcnow()
+        })
+
+        client.close()
+        return jsonify({"status": "ok"})
+
+    except Exception as e:
+        print("[TRACK_CLICK ERROR]", e)
         return jsonify({"status": "error", "msg": str(e)}), 500
 
 
