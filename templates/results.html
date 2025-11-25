@@ -252,7 +252,10 @@
     <div class="card" id="{{ r.hash }}">
       <button class="remove-btn" onclick="removeItem('{{ r.hash }}', '{{ r.title }}')">🗑️</button>
 
-      <a href="{{ r.url }}" target="_blank" rel="noopener">
+      <!-- 🔥 TRACK CLICK -->
+      <a href="{{ r.url }}" target="_blank" rel="noopener"
+         onclick="trackClick('{{ query|escapejs }}', '{{ r.title|escapejs }}')">
+
         <img class="thumb" src="{{ r.image }}" alt="{{ r.title }}" loading="lazy" />
         <div class="title">{{ r.title }}</div>
         <div class="price">
@@ -270,6 +273,7 @@
             <img class="logo" src="/static/loghi/{{ r.source|lower }}.png" alt="{{ r.source }}">
           {% endif %}
         </div>
+
       </a>
     </div>
     {% endfor %}
@@ -297,6 +301,20 @@ function updateHeight() {
 }
 new ResizeObserver(updateHeight).observe(document.body);
 updateHeight();
+</script>
+
+<!-- 🔥 AUTO-LEARN: TRACK CLICK -->
+<script>
+function trackClick(query, title) {
+    fetch("/track_click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            query: query,
+            title: title
+        })
+    });
+}
 </script>
 
 <!-- 🔥 MODALITÀ ADMIN -->
