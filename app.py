@@ -4,9 +4,9 @@ from datetime import datetime
 from flask import Flask, request, render_template, Response, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from rapidfuzz import fuzz  # ✅ fuzzy
+from rapidfuzz import fuzz  # fuzzy
 
-from utils_learn_modern import extract_modern_terms  # ✅ IMPORT INTELLIGENZA MODERNO
+from utils_learn_modern import extract_modern_terms
 
 # === Load ENV ===
 load_dotenv()
@@ -34,8 +34,30 @@ def _norm_text(s: str) -> str:
     return s.strip()
 
 
+# ============================================================
+# 🔹 STEMMING LEGGERO
+# ============================================================
+def _stem(word):
+    """Stemming semplice per italiano/vintage."""
+    if not word:
+        return word
+
+    # plurali
+    if word.endswith("i") and len(word) > 3:
+        return word[:-1]
+    if word.endswith("e") and len(word) > 3:
+        return word[:-1]
+
+    # diminutivi
+    for suf in ["ina", "ine", "ino", "ini", "one", "oni"]:
+        if word.endswith(suf) and len(word) > 4:
+            return word[:-len(suf)]
+
+    return word
+
+
 def _tokenize(s: str):
-    return [t for t in _norm_text(s).split() if t]
+    return [_stem(t) for t in _norm_text(s).split() if t]
 
 
 def _generate_ngrams(tokens, max_len=4):
@@ -67,6 +89,43 @@ def load_synonyms():
 
 
 SINONIMI = load_synonyms()
+
+
+# ============================================================
+# 🔹 SINONIMI BIDIREZIONALI
+# ============================================================
+def build_bidirectional_synonyms(syn):
+    bio = {}
+
+    for key, lst in syn.items():
+        key_n = _norm_text(key)
+
+        if key_n not in bio:
+            bio[key_n] = set()
+
+        for v in lst:
+            v_n = _norm_text(v)
+            if not v_n:
+                continue
+
+            bio[key_n].add(v_n)
+
+            # Inverso
+            if v_n not in bio:
+                bio[v_n] = set()
+            bio[v_n].add(key_n)
+
+            # Collegamento fra tutti i sinonimi
+            for other in lst:
+                o_n = _norm_text(other)
+                if o_n and o_n != v_n:
+                    bio[v_n].add(o_n)
+
+    return {k: list(v) for k, v in bio.items()}
+
+
+# Applichiamo potenziamento
+SINONIMI = build_bidirectional_synonyms(SINONIMI)
 
 
 # ============================================================
@@ -128,7 +187,6 @@ def search():
     vclass = request.args.get("vintage_class") or ""
     category = (request.args.get("category") or "").strip()
     sort = (request.args.get("sort") or "score").strip()
-
     scope = (request.args.get("scope") or "").strip().lower()
 
     price_min = request.args.get("price_min")
@@ -246,7 +304,6 @@ def search():
 
     results = list(col.aggregate(pipeline))
 
-    # Fallback & fuzzy
     if scope != "tutti" and q and len(results) == 0:
         sinonimi = _espandi_sinonimi(q)
         if sinonimi:
@@ -296,20 +353,20 @@ def search():
 
 
 ###############################################################################
-# ✅ Robots
+# Robots
 ###############################################################################
 @app.route("/robots.txt")
 def robots_txt():
     return Response(
         "User-agent: *\nDisallow: /search\nSitemap: "
-        + SITE_URL.rstrip("/")
-        + "/sitemap.xml",
+        + SITE_URL.rstrip("/") +
+        "/sitemap.xml",
         mimetype="text/plain",
     )
 
 
 ###############################################################################
-# ✅ Sitemap
+# Sitemap
 ###############################################################################
 @app.route("/sitemap.xml")
 def sitemap_xml():
@@ -326,7 +383,7 @@ def sitemap_xml():
 
 
 ###############################################################################
-# ✅ Remove item + auto-learn moderno
+# Remove item + moderno
 ###############################################################################
 @app.route("/remove_item", methods=["POST"])
 def remove_item():
@@ -360,7 +417,7 @@ def remove_item():
 
 
 ###############################################################################
-# ✅ TRACK CLICK — AUTO-LEARN SINONIMI
+# TRACK CLICK
 ###############################################################################
 @app.route("/track_click", methods=["POST"])
 def track_click():
@@ -391,7 +448,7 @@ def track_click():
 
 
 ###############################################################################
-# ✅ RUN
+# RUN
 ###############################################################################
 if __name__ == "__main__":
     app.run(debug=True)
