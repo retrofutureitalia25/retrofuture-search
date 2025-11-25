@@ -1,15 +1,16 @@
 #############################################################
-# ✅ utils_normalize.py — versione aggiornata 2025
+# ✅ utils_normalize.py — versione aggiornata 2025 + SINONIMI
 #    • Nessun filtro località
 #    • Filtro aste
 #    • Filtro ricambi/motori SOLO eBay
 #    • Filtri bici moderne + boost bici vintage
-#    • NEW: Supporto modern_keywords_extended.json
-#    • NEW: Super filtro anti-moderno
+#    • Supporto modern_keywords_extended.json
+#    • Super filtro anti-moderno
 #    • Patch MERCATINO:
 #         1) blocco annunci senza titolo
 #         2) blocco annunci senza URL
 #         3) blocco duplicati tramite hash_cache
+#    • NEW: integrazione utils_synonyms.expand_with_synonyms
 #############################################################
 
 import re
@@ -20,7 +21,7 @@ from hashlib import sha1
 from datetime import datetime, UTC
 
 from utils_log import log_event   # per loggare scarti ricambi
-
+from utils_synonyms import expand_with_synonyms  # ✅ NEW: sinonimi backend
 
 #############################################################
 # ✅ Funzioni JSON
@@ -135,6 +136,10 @@ def detect_era(text):
 #############################################################
 
 def classify_vintage_status(text):
+    """
+    ATTENZIONE: ora ci aspettiamo che 'text'
+    sia già stato espanso con i sinonimi.
+    """
     text_low = text.lower()
     score = 0
     vclass = "vintage_generico"
@@ -146,7 +151,6 @@ def classify_vintage_status(text):
         if term and term in text_low:
             return "non_vintage", -30
 
-        # frasi composte tipo "google pixel 7 pro"
         if " " in term and term in text_low:
             return "non_vintage", -25
 
@@ -303,8 +307,11 @@ _hash_cache = set()
 def normalizza_annuncio(raw, source_name):
     title = (raw.get("title") or raw.get("titolo") or "").strip()
     description = raw.get("description") or raw.get("descrizione") or title
-    full_text = f"{title} {description}".lower()
 
+    # 🔥 Testo grezzo
+    full_text_raw = f"{title} {description}"
+
+    # Blocco annunci senza titolo
     if not title or title.lower() in ("titolo non disponibile", "n/a", "none"):
         return None
 
@@ -312,25 +319,31 @@ def normalizza_annuncio(raw, source_name):
     if not url:
         return None
 
+    # Filtro aste
     if is_auction(title) or is_auction(description):
         return None
 
+    # ❌ Ricambi eBay
+    full_text_low = full_text_raw.lower()
     if source_name == "ebay":
-        term = is_ricambio_ebay(full_text)
+        term = is_ricambio_ebay(full_text_low)
         if term:
             log_event("ebay", f"❌ Ricambio scartato: \"{title}\" — trovato termine: \"{term}\"")
             return None
 
-    vintage_class, score = classify_vintage_status(full_text)
+    # 🔥 Espansione sinonimi (BACKEND)
+    full_text_expanded = expand_with_synonyms(full_text_raw)
+
+    # Classificazione vintage + era sul testo espanso
+    vintage_class, score = classify_vintage_status(full_text_expanded)
     if vintage_class == "non_vintage" or score < 0:
         return None
 
-    era = detect_era(full_text)
+    era = detect_era(full_text_expanded)
 
     #############################################################
     # PREZZO FIX 2025
     #############################################################
-    
     prezzo_raw = str(raw.get("price") or raw.get("prezzo") or "").strip()
 
     clean = re.sub(r"[^\d,\.]", "", prezzo_raw)
@@ -353,7 +366,8 @@ def normalizza_annuncio(raw, source_name):
     category = raw.get("category") or raw.get("categoria") or "vario"
     condition = raw.get("condition") or raw.get("condizione")
 
-    tokens = re.findall(r"[a-zA-Z0-9àèéìòù]+", title.lower())
+    # 🔥 Keywords dal TESTO ESPANSO (così entrano i canonici)
+    tokens = re.findall(r"[a-zA-Z0-9àèéìòù]+", full_text_expanded.lower())
     keywords = list(set(tokens))
 
     source_id = raw.get("id") or (sha1(url.encode("utf-8")).hexdigest()[:12])
