@@ -10,7 +10,11 @@
 #         1) blocco annunci senza titolo
 #         2) blocco annunci senza URL
 #         3) blocco duplicati tramite hash_cache
-#    • NEW: integrazione utils_synonyms.expand_with_synonyms
+#    • NEW 2025:
+#         🔥 Sinonimi backend per:
+#             - vintage_score
+#             - era detection
+#             - keywords generate
 #############################################################
 
 import re
@@ -20,11 +24,11 @@ import os
 from hashlib import sha1
 from datetime import datetime, UTC
 
-from utils_log import log_event   # per loggare scarti ricambi
-from utils_synonyms import expand_with_synonyms  # ✅ NEW: sinonimi backend
+from utils_log import log_event
+from utils_synonyms import expand_with_synonyms   # 🔥 NEW
 
 #############################################################
-# ✅ Funzioni JSON
+# JSON tools
 #############################################################
 
 def load_json(filename):
@@ -40,9 +44,8 @@ def save_json(filename, data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-
 #############################################################
-# ✅ Caricamento liste
+# Liste
 #############################################################
 
 vintage_memory = load_json("vintage_memory.json") or {
@@ -84,11 +87,10 @@ retro_terms |= {"retro", "stile vintage", "look retrò"}
 
 
 #############################################################
-# 🔥 NEW — Caricamento moderno esteso
+# Modern EXTENDED
 #############################################################
 
 modern_ext = load_json("modern_keywords_extended.json")
-
 modern_ext_terms = set()
 
 if isinstance(modern_ext, dict):
@@ -102,9 +104,8 @@ elif isinstance(modern_ext, list):
         modern_ext_terms.add(str(v).strip().lower())
 
 
-
 #############################################################
-# ✅ ERA detection
+# ERA detection
 #############################################################
 
 def detect_era(text):
@@ -130,39 +131,38 @@ def detect_era(text):
     return "vintage_generico"
 
 
-
 #############################################################
-# ✅ Classificatore vintage
+# 🔥 VINTAGE CLASSIFIER (ora usa i sinonimi in ingresso)
 #############################################################
 
 def classify_vintage_status(text):
     """
-    ATTENZIONE: ora ci aspettiamo che 'text'
-    sia già stato espanso con i sinonimi.
+    ATTENZIONE:
+      ✔ 'text' è già stato passato attraverso expand_with_synonyms()
+      ✔ i filtri modern rimangono sicuri perché usano il testo grezzo
     """
     text_low = text.lower()
     score = 0
     vclass = "vintage_generico"
 
     #########################################################
-    # ❌ NEW — Filtro modern EXTENDED (priorità assoluta)
+    # ❌ Modern EXTENDED
     #########################################################
     for term in modern_ext_terms:
         if term and term in text_low:
             return "non_vintage", -30
-
         if " " in term and term in text_low:
             return "non_vintage", -25
 
     #########################################################
-    # ❌ Filtro modern learned
+    # ❌ Modern learned
     #########################################################
     for term in modern_learned:
         if term in text_low:
             return "non_vintage", -20
 
     #########################################################
-    # ❌ Filtri bici moderne
+    # ❌ Bici moderne
     #########################################################
     modern_bike_patterns = [
         "e-bike", "ebike", "bici elettrica",
@@ -177,7 +177,7 @@ def classify_vintage_status(text):
             return "non_vintage", -10
 
     #########################################################
-    # ❌ Modern patterns storici
+    # ❌ Modern tech/hard
     #########################################################
     modern_patterns = [
         r"\biphone\b", r"\bipad\b", r"\bps5\b",
@@ -199,7 +199,7 @@ def classify_vintage_status(text):
             return "non_vintage", -10
 
     #########################################################
-    # Vintage detection
+    # ✔ Vintage detection (ora con sinonimi espansi)
     #########################################################
 
     for w in vintage_terms:
@@ -237,6 +237,9 @@ def classify_vintage_status(text):
             score += 4
             vclass = "vintage_originale"
 
+    #########################################################
+    # Learning
+    #########################################################
     if 0 <= score < 3:
         words = re.findall(r"[a-zA-Z0-9]{4,}", text_low)
         for w in words:
@@ -249,9 +252,8 @@ def classify_vintage_status(text):
     return vclass, score
 
 
-
 #############################################################
-# ✅ FILTRO ASTE
+# Filtri aste
 #############################################################
 
 def is_auction(text):
@@ -269,9 +271,8 @@ def is_auction(text):
     ])
 
 
-
 #############################################################
-# ✅ FILTRO SPECIFICO: ricambi/motori (SOLO EBAY)
+# Ricambi eBay
 #############################################################
 
 EBAY_RICAMBI_TERMS = [
@@ -291,50 +292,55 @@ def is_ricambio_ebay(text):
     return None
 
 
-
 #############################################################
-# ✅ HASH CACHE per prevenire duplicati lato normalize
+# Duplicati
 #############################################################
 
 _hash_cache = set()
 
 
-
 #############################################################
-# ✅ Normalizzazione ANNUNCIO
+# NORMALIZZAZIONE ANNUNCIO
 #############################################################
 
 def normalizza_annuncio(raw, source_name):
     title = (raw.get("title") or raw.get("titolo") or "").strip()
     description = raw.get("description") or raw.get("descrizione") or title
 
-    # 🔥 Testo grezzo
     full_text_raw = f"{title} {description}"
 
-    # Blocco annunci senza titolo
+    # TITOLI MANCANTI
     if not title or title.lower() in ("titolo non disponibile", "n/a", "none"):
         return None
 
+    # URL mancante
     url = raw.get("url") or raw.get("link") or ""
     if not url:
         return None
 
-    # Filtro aste
+    # Aste
     if is_auction(title) or is_auction(description):
         return None
 
-    # ❌ Ricambi eBay
+    # Ricambi eBay
     full_text_low = full_text_raw.lower()
     if source_name == "ebay":
         term = is_ricambio_ebay(full_text_low)
         if term:
-            log_event("ebay", f"❌ Ricambio scartato: \"{title}\" — trovato termine: \"{term}\"")
+            log_event("ebay", f"❌ Ricambio scartato: \"{title}\" — trovato: \"{term}\"")
             return None
 
-    # 🔥 Espansione sinonimi (BACKEND)
-    full_text_expanded = expand_with_synonyms(full_text_raw)
+    #############################################################
+    # 🔥 EXPAND WITH SYNONYMS
+    #############################################################
+    try:
+        full_text_expanded = expand_with_synonyms(full_text_raw)
+    except:
+        full_text_expanded = full_text_raw
 
-    # Classificazione vintage + era sul testo espanso
+    #############################################################
+    # VINTAGE + ERA
+    #############################################################
     vintage_class, score = classify_vintage_status(full_text_expanded)
     if vintage_class == "non_vintage" or score < 0:
         return None
@@ -342,10 +348,9 @@ def normalizza_annuncio(raw, source_name):
     era = detect_era(full_text_expanded)
 
     #############################################################
-    # PREZZO FIX 2025
+    # PREZZO
     #############################################################
     prezzo_raw = str(raw.get("price") or raw.get("prezzo") or "").strip()
-
     clean = re.sub(r"[^\d,\.]", "", prezzo_raw)
 
     if "," in clean and "." in clean:
@@ -366,12 +371,24 @@ def normalizza_annuncio(raw, source_name):
     category = raw.get("category") or raw.get("categoria") or "vario"
     condition = raw.get("condition") or raw.get("condizione")
 
-    # 🔥 Keywords dal TESTO ESPANSO (così entrano i canonici)
-    tokens = re.findall(r"[a-zA-Z0-9àèéìòù]+", full_text_expanded.lower())
+    #############################################################
+    # 🔥 KEYWORDS potenziate (con sinonimi)
+    #############################################################
+    try:
+        kw_source = expand_with_synonyms(full_text_expanded.lower())
+    except:
+        kw_source = full_text_expanded.lower()
+
+    tokens = re.findall(r"[a-zA-Z0-9àèéìòù]+", kw_source)
     keywords = list(set(tokens))
 
+    #############################################################
+    # HASH
+    #############################################################
     source_id = raw.get("id") or (sha1(url.encode("utf-8")).hexdigest()[:12])
-    hash_value = hashlib.md5(f"{source_name}-{title}-{prezzo_val}-{url}".encode("utf-8")).hexdigest()
+    hash_value = hashlib.md5(
+        f"{source_name}-{title}-{prezzo_val}-{url}".encode("utf-8")
+    ).hexdigest()
 
     if hash_value in _hash_cache:
         return None
