@@ -15,6 +15,8 @@
 #             - vintage_score
 #             - era detection
 #             - keywords generate
+#    • NEW PATCH:
+#         ⭐ BOOST vintage core (Polaroid, Atari, Amiga, Game Boy, ecc.)
 #############################################################
 
 import re
@@ -197,6 +199,39 @@ def classify_vintage_status(text):
     for m in modern_auto:
         if m in text_low:
             return "non_vintage", -10
+
+    #########################################################
+    # ⭐ BOOST Vintage core
+    #########################################################
+
+    vintage_core_terms = {
+        "polaroid",
+        "polaroid sx-70",
+        "polaroid 600",
+        "land camera",
+        "atari",
+        "amiga",
+        "commodore",
+        "c64",
+        "amiga 500",
+        "game boy",
+        "gameboy",
+        "nintendo nes",
+        "super nintendo",
+        "snes",
+        "sega megadrive",
+        "mega drive",
+        "sega saturn",
+        "walkman",
+        "sony walkman",
+        "vhs",
+        "videoregistratore vhs"
+    }
+
+    for term in vintage_core_terms:
+        if term in text_low:
+            score += 3
+            vclass = "vintage_originale"
 
     #########################################################
     # ✔ Vintage detection (ora con sinonimi espansi)
