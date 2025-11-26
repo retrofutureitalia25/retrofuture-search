@@ -38,17 +38,14 @@ def _norm_text(s: str) -> str:
 # 🔹 STEMMING LEGGERO
 # ============================================================
 def _stem(word):
-    """Stemming semplice per italiano/vintage."""
     if not word:
         return word
 
-    # plurali
     if word.endswith("i") and len(word) > 3:
         return word[:-1]
     if word.endswith("e") and len(word) > 3:
         return word[:-1]
 
-    # diminutivi
     for suf in ["ina", "ine", "ino", "ini", "one", "oni"]:
         if word.endswith(suf) and len(word) > 4:
             return word[:-len(suf)]
@@ -110,12 +107,10 @@ def build_bidirectional_synonyms(syn):
 
             bio[key_n].add(v_n)
 
-            # Inverso
             if v_n not in bio:
                 bio[v_n] = set()
             bio[v_n].add(key_n)
 
-            # Collegamento fra tutti i sinonimi
             for other in lst:
                 o_n = _norm_text(other)
                 if o_n and o_n != v_n:
@@ -124,7 +119,6 @@ def build_bidirectional_synonyms(syn):
     return {k: list(v) for k, v in bio.items()}
 
 
-# Applichiamo potenziamento
 SINONIMI = build_bidirectional_synonyms(SINONIMI)
 
 
@@ -178,7 +172,7 @@ def index():
 
 
 ###############################################################################
-# ✅ SEARCH — AGGIUNTA MODALITÀ "TUTTI"
+# SEARCH
 ###############################################################################
 @app.route("/search")
 def search():
@@ -233,6 +227,7 @@ def search():
             ]
         }
 
+    # ------------ Query principale ----------------
     if scope != "tutti" and q:
         sinonimi = _espandi_sinonimi(q)
         q_norm = _norm_text(q)
@@ -243,6 +238,7 @@ def search():
         if query_block:
             match.update(query_block)
 
+    # ------------ Filtri ------------
     if scope != "tutti":
         if era:
             match["era"] = era
@@ -259,6 +255,7 @@ def search():
         if price_filter:
             match["price_value"] = price_filter
 
+    # ------------ Pipeline ------------
     pipeline = [
         {"$match": match},
         {
@@ -274,9 +271,7 @@ def search():
     ]
 
     if scope == "tutti":
-        pipeline.append(
-            {"$sort": {"created_dt": -1, "updated_dt": -1, "_id": -1}}
-        )
+        pipeline.append({"$sort": {"created_dt": -1, "updated_dt": -1, "_id": -1}})
     else:
         if sort == "price_asc":
             pipeline.append({"$sort": {"price_num": 1}})
@@ -287,15 +282,13 @@ def search():
         elif sort == "added":
             pipeline.append({"$sort": {"created_dt": -1}})
         else:
-            pipeline.append(
-                {
-                    "$sort": {
-                        "vintage_score": -1,
-                        "era_weight": -1,
-                        "updated_dt": -1,
-                    }
+            pipeline.append({
+                "$sort": {
+                    "vintage_score": -1,
+                    "era_weight": -1,
+                    "updated_dt": -1,
                 }
-            )
+            })
 
     pipeline += [
         {"$skip": (page - 1) * per_page},
@@ -304,21 +297,24 @@ def search():
 
     results = list(col.aggregate(pipeline))
 
-    if scope != "tutti" and q and len(results) == 0:
-        sinonimi = _espandi_sinonimi(q)
-        if sinonimi:
-            fallback_used = True
-            q_norm = _norm_text(q)
-            tokens = _tokenize(q)
-            search_terms = [q_norm] + tokens + sinonimi
-            query_block = build_query(search_terms)
-            if query_block:
-                match.update(query_block)
-                pipeline[0] = {"$match": match}
-                results = list(col.aggregate(pipeline))
-
+    # =====================================================================
+    # 🔥 NUOVO SISTEMA DI FALLBACK FUZZY SUPER OTTIMIZZATO
+    # =====================================================================
     if scope != "tutti" and q and len(results) < 5:
-        prelim = list(col.find({"vintage_class": {"$ne": "non_vintage"}}))
+
+        # 1️⃣ selezione larga per ridurre i candidati
+        loose_regex = {"$or": [
+            {"title": {"$regex": q[:5], "$options": "i"}},  # primi 5 caratteri
+            {"description": {"$regex": q[:5], "$options": "i"}},
+        ]}
+
+        prelim = list(col.find(
+            {"vintage_class": {"$ne": "non_vintage"}, **loose_regex},
+            {"title": 1, "description": 1, "url": 1,
+             "image": 1, "price_display": 1, "price_value": 1,
+             "source": 1, "hash": 1}
+        ).limit(2000))
+
         fuzzy_matches = []
 
         for item in prelim:
@@ -331,6 +327,8 @@ def search():
             start = (page - 1) * per_page
             end = page * per_page
             results = fuzzy_matches[start:end]
+
+    # =====================================================================
 
     client.close()
 
