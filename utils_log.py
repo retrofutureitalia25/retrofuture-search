@@ -1,40 +1,63 @@
 # utils_log.py
+# ============================================================
+# Sistema di logging RetroFuture — versione 2025
+# Sicuro su:
+#   • Linux, macOS, Windows, WSL
+#   • Docker
+#   • Hosting multipli
+#   • Cronjobs
+# ============================================================
+
 from datetime import datetime
 import sys
 import os
 
-LOG_FILE = "scraper_log.txt"
+# ============================================================
+# Percorso assoluto del file di log accanto allo script
+# ============================================================
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE = os.path.join(BASE_DIR, "scraper_log.txt")
+
+# Tentiamo di configurare stdout UTF-8 una sola volta
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 
 def log_event(source, message, level="INFO"):
     """
-    Registra un evento nel file di log scraper_log.txt
-    Compatibile con emoji, PowerShell e UTF-8 (Windows).
+    Log universale:
+      - Scrive su file scraper_log.txt
+      - Stampa su console in UTF-8 (fallback ASCII)
+      - Compatibile PowerShell, Windows, Cron, Docker
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     source_upper = source.upper() if isinstance(source, str) else "GENERIC"
     line = f"[{timestamp}] [{level}] [{source_upper}] {message}\n"
 
-    # ✅ Assicura che la directory esista
+    # ========================================================
+    # Scrittura su file (UTF-8)
+    # ========================================================
     try:
-        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-    except Exception:
-        pass
+        # crea directory SOLO se necessaria
+        log_dir = os.path.dirname(LOG_FILE)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
 
-    # ✅ Scrive sempre in UTF-8 su file
-    try:
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(line)
+
     except Exception as e:
         print(f"[LOG ERROR] impossibile scrivere il file di log: {e}")
 
-    # ✅ Forza UTF-8 sulla console (Windows compatibile)
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
-
-    # ✅ Stampa in console (fallback in ASCII se necessario)
+    # ========================================================
+    # Stampa su console
+    # ========================================================
     try:
         print(line, end="")
     except UnicodeEncodeError:
-        print(line.encode("ascii", errors="ignore").decode(), end="")
+        # fallback ASCII (rimuove emoji)
+        safe_line = line.encode("ascii", errors="ignore").decode()
+        print(safe_line, end="")
