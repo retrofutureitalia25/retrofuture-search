@@ -100,7 +100,6 @@ if isinstance(modern_ext, dict):
         if isinstance(values, list):
             for v in values:
                 modern_ext_terms.add(str(v).strip().lower())
-
 elif isinstance(modern_ext, list):
     for v in modern_ext:
         modern_ext_terms.add(str(v).strip().lower())
@@ -111,8 +110,9 @@ elif isinstance(modern_ext, list):
 #############################################################
 
 def detect_era(text):
-    text = text.lower()
+    text = (text or "").lower()
 
+    # Numeri tipo 1957, 1963, 1989...
     m = re.search(r"19([5-9][0-9])", text)
     if m:
         decade = m.group(1)[0] + "0"
@@ -134,37 +134,47 @@ def detect_era(text):
 
 
 #############################################################
-# 🔥 VINTAGE CLASSIFIER (ora usa i sinonimi in ingresso)
+# 🔥 VINTAGE CLASSIFIER (raw_text + expanded_text)
 #############################################################
 
-def classify_vintage_status(text):
+def classify_vintage_status(raw_text, expanded_text=None):
     """
-    ATTENZIONE:
-      ✔ 'text' è già stato passato attraverso expand_with_synonyms()
-      ✔ i filtri modern rimangono sicuri perché usano il testo grezzo
+    Classificatore vintage:
+      - raw_text: testo grezzo (usato per filtri modern / anni / brand)
+      - expanded_text: testo espanso con sinonimi (usato per riconoscere vintage)
+
+    Compatibilità:
+      - se chiamato con un solo argomento, expanded_text = raw_text
     """
-    text_low = text.lower()
+    raw_text = raw_text or ""
+    raw_low = raw_text.lower()
+    text_low = (expanded_text or raw_text).lower()
+
     score = 0
     vclass = "vintage_generico"
 
     #########################################################
-    # ❌ Modern EXTENDED
+    # ❌ Modern EXTENDED (su testo grezzo)
     #########################################################
     for term in modern_ext_terms:
-        if term and term in text_low:
+        if term and term in raw_low:
             return "non_vintage", -30
-        if " " in term and term in text_low:
-            return "non_vintage", -25
 
     #########################################################
-    # ❌ Modern learned
+    # ❌ Modern learned (grezzo)
     #########################################################
     for term in modern_learned:
-        if term in text_low:
+        if term and term in raw_low:
             return "non_vintage", -20
 
     #########################################################
-    # ❌ Bici moderne
+    # ❌ Anni troppo recenti (2005–2025) → molto probabile moderno
+    #########################################################
+    if re.search(r"\b20(0[5-9]|1[0-9]|2[0-5])\b", raw_low):
+        return "non_vintage", -15
+
+    #########################################################
+    # ❌ Bici moderne (grezzo)
     #########################################################
     modern_bike_patterns = [
         "e-bike", "ebike", "bici elettrica",
@@ -175,11 +185,11 @@ def classify_vintage_status(text):
         "29\"", "29 pollici", "27.5"
     ]
     for pat in modern_bike_patterns:
-        if pat in text_low:
+        if pat in raw_low:
             return "non_vintage", -10
 
     #########################################################
-    # ❌ Modern tech/hard
+    # ❌ Modern tech/hard (grezzo)
     #########################################################
     modern_patterns = [
         r"\biphone\b", r"\bipad\b", r"\bps5\b",
@@ -188,7 +198,7 @@ def classify_vintage_status(text):
         r"\bnintendo switch\b"
     ]
     for pat in modern_patterns:
-        if re.search(pat, text_low):
+        if re.search(pat, raw_low):
             return "non_vintage", -10
 
     modern_auto = [
@@ -197,11 +207,11 @@ def classify_vintage_status(text):
         "mercedes classe", "tmax", "smart fortwo"
     ]
     for m in modern_auto:
-        if m in text_low:
+        if m in raw_low:
             return "non_vintage", -10
 
     #########################################################
-    # ⭐ BOOST Vintage core
+    # ⭐ BOOST Vintage core (su testo espanso)
     #########################################################
 
     vintage_core_terms = {
@@ -238,12 +248,12 @@ def classify_vintage_status(text):
     #########################################################
 
     for w in vintage_terms:
-        if w in text_low:
+        if w and w in text_low:
             score += 3
             vclass = "vintage_originale"
 
     for w in retro_terms:
-        if w in text_low:
+        if w and w in text_low:
             score += 1
             vclass = "retro_moderno"
 
@@ -273,13 +283,13 @@ def classify_vintage_status(text):
             vclass = "vintage_originale"
 
     #########################################################
-    # Learning
+    # Learning (solo se borderline)
     #########################################################
     if 0 <= score < 3:
-        words = re.findall(r"[a-zA-Z0-9]{4,}", text_low)
+        words = re.findall(r"[a-zA-Z0-9]{4,}", raw_low)
         for w in words:
             if w not in vintage_terms and w not in retro_terms and w not in blacklist:
-                add_to_learn_queue(w, text_low)
+                add_to_learn_queue(w, raw_low)
 
     if score >= 3:
         vclass = "vintage_originale"
@@ -320,7 +330,7 @@ EBAY_RICAMBI_TERMS = [
 ]
 
 def is_ricambio_ebay(text):
-    t = text.lower()
+    t = (text or "").lower()
     for term in EBAY_RICAMBI_TERMS:
         if term in t:
             return term
@@ -342,7 +352,8 @@ def normalizza_annuncio(raw, source_name):
     title = (raw.get("title") or raw.get("titolo") or "").strip()
     description = raw.get("description") or raw.get("descrizione") or title
 
-    full_text_raw = f"{title} {description}"
+    full_text_raw = f"{title} {description}".strip()
+    full_text_low = full_text_raw.lower()
 
     # TITOLI MANCANTI
     if not title or title.lower() in ("titolo non disponibile", "n/a", "none"):
@@ -353,31 +364,37 @@ def normalizza_annuncio(raw, source_name):
     if not url:
         return None
 
+    # ❌ Blacklist: se il titolo/descrizione contiene parole bannate → scarta
+    for bad in blacklist:
+        if bad and bad.lower() in full_text_low:
+            return None
+
     # Aste
     if is_auction(title) or is_auction(description):
         return None
 
     # Ricambi eBay
-    full_text_low = full_text_raw.lower()
     if source_name == "ebay":
-        term = is_ricambio_ebay(full_text_low)
+        term = is_ricambio_ebay(full_text_raw)
         if term:
             log_event("ebay", f"❌ Ricambio scartato: \"{title}\" — trovato: \"{term}\"")
             return None
 
     #############################################################
-    # 🔥 EXPAND WITH SYNONYMS
+    # 🔥 EXPAND WITH SYNONYMS (una sola volta)
     #############################################################
     try:
         full_text_expanded = expand_with_synonyms(full_text_raw)
-    except:
+    except Exception:
         full_text_expanded = full_text_raw
 
     #############################################################
     # VINTAGE + ERA
     #############################################################
-    vintage_class, score = classify_vintage_status(full_text_expanded)
-    if vintage_class == "non_vintage" or score < 0:
+    vintage_class, score = classify_vintage_status(full_text_raw, full_text_expanded)
+
+    # Soglia minima di "vintaggità"
+    if vintage_class == "non_vintage" or score < 2:
         return None
 
     era = detect_era(full_text_expanded)
@@ -398,7 +415,7 @@ def normalizza_annuncio(raw, source_name):
     else:
         try:
             prezzo_val = float(clean)
-        except:
+        except Exception:
             prezzo_val = 0.0
 
     image = raw.get("image") or raw.get("img") or raw.get("immagine") or ""
@@ -407,13 +424,9 @@ def normalizza_annuncio(raw, source_name):
     condition = raw.get("condition") or raw.get("condizione")
 
     #############################################################
-    # 🔥 KEYWORDS potenziate (con sinonimi)
+    # 🔥 KEYWORDS potenziate (usiamo il testo ESPANSO, senza ri-espandere)
     #############################################################
-    try:
-        kw_source = expand_with_synonyms(full_text_expanded.lower())
-    except:
-        kw_source = full_text_expanded.lower()
-
+    kw_source = full_text_expanded.lower()
     tokens = re.findall(r"[a-zA-Z0-9àèéìòù]+", kw_source)
     keywords = list(set(tokens))
 
