@@ -293,86 +293,91 @@
     // targetOrigin: prova a ricavarlo dal referrer (più sicuro), altrimenti usa "*"
     let targetOrigin = "*";
     try {
-      if (document.referrer) {
-        targetOrigin = new URL(document.referrer).origin;
-      }
+      if (document.referrer) targetOrigin = new URL(document.referrer).origin;
     } catch (e) {}
 
-    let lastSent = 0;
+    let lastHeight = 0;
     let rafId = null;
 
     function getDocHeight() {
-  const body = document.body;
+      const doc = document.documentElement;
+      const body = document.body;
 
-  // altezza reale dell'ultimo elemento visibile nella pagina
-  const last = body.lastElementChild;
-  if (last) {
-    const r = last.getBoundingClientRect();
-    return Math.ceil(r.bottom + window.scrollY);
-  }
+      const h = Math.max(
+        body.scrollHeight, doc.scrollHeight,
+        body.offsetHeight, doc.offsetHeight
+      );
 
-  return Math.ceil(body.getBoundingClientRect().height);
-}
-
+      return Math.ceil(h + 20); // buffer anti-tagli
+    }
 
     function postHeight(force) {
-      const now = Date.now();
-      if (!force && (now - lastSent) < 120) return; // throttle
-      lastSent = now;
-
       const h = getDocHeight();
+      if (!force && Math.abs(h - lastHeight) < 4) return; // niente spam
+      lastHeight = h;
       window.parent.postMessage({ rf_height: h }, targetOrigin);
     }
 
     function schedule(force) {
       if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => postHeight(!!force));
+      rafId = requestAnimationFrame(() => {
+        postHeight(!!force);
+        rafId = null;
+      });
     }
 
-    // 1) subito + dopo un attimo
+    // 1) subito + dopo piccoli delay (font/immagini/grid)
     schedule(true);
     setTimeout(() => schedule(true), 120);
-    setTimeout(() => schedule(true), 400);
+    setTimeout(() => schedule(true), 350);
     setTimeout(() => schedule(true), 900);
+    setTimeout(() => schedule(true), 1500);
 
     // 2) onload
     window.addEventListener("load", () => schedule(true));
 
-    // 3) resize (viewport cambia)
+    // 3) resize
     window.addEventListener("resize", () => schedule(false));
 
-    // 4) quando finiscono di caricare le immagini (lazy compreso)
+    // 4) immagini (lazy compreso)
     function hookImages() {
       const imgs = document.querySelectorAll("img");
       imgs.forEach(img => {
         if (img.dataset.rfHooked) return;
         img.dataset.rfHooked = "1";
-        img.addEventListener("load", () => schedule(true));
-        img.addEventListener("error", () => schedule(true));
+        if (img.complete) return;
+        img.addEventListener("load", () => schedule(true), { passive:true });
+        img.addEventListener("error", () => schedule(true), { passive:true });
       });
     }
     hookImages();
 
-    // 5) osserva cambiamenti DOM (risultati/paginazione/filtri)
+    // 5) osserva cambi DOM
     const mo = new MutationObserver(() => {
       hookImages();
       schedule(false);
     });
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+    mo.observe(document.body, { childList: true, subtree: true });
 
-    // 6) osserva cambiamenti di dimensione reali
+    // 6) osserva cambi di dimensione
     if (window.ResizeObserver) {
       const ro = new ResizeObserver(() => schedule(false));
       ro.observe(document.body);
     }
 
-    // 7) font load può cambiare altezza
+    // 7) font load
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => schedule(true)).catch(()=>{});
     }
 
-    // 8) safety ping (per casi strani di Elementor)
-    setInterval(() => schedule(false), 2000);
+    // 8) micro-fallback all’avvio (non infinito)
+    let ticks = 0;
+    const t = setInterval(() => {
+      schedule(false);
+      ticks++;
+      if (ticks >= 6) clearInterval(t); // 3 secondi
+    }, 500);
+
   })();
   </script>
 
