@@ -8,35 +8,29 @@
   <meta name="description" content="Risultati per '{{ query }}' su RetroFuture Search: sfoglia oggetti vintage da più marketplace.">
   <meta name="robots" content="noindex, follow">
 
+  <link rel="canonical" href="{{ url_for('search',
+      q=query, era=era, vintage_class=vintage_class, category=category,
+      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page, _external=True) }}">
+
+  {% if page and page>1 %}
+  <link rel="prev" href="{{ url_for('search',
+      q=query, era=era, vintage_class=vintage_class, category=category,
+      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1, _external=True) }}">
+  {% endif %}
+  {% if risultati|length == 50 %}
+  <link rel="next" href="{{ url_for('search',
+      q=query, era=era, vintage_class=vintage_class, category=category,
+      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1, _external=True) }}">
+  {% endif %}
+
   <style>
-    html, body {
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow: hidden !important;
-      background: #f4f4f4;
-      font-family: system-ui, Arial, sans-serif;
-    }
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f4f4f4; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
 
-    #rf-wrapper {
-      padding: 24px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
-      gap: 16px;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.08);
-      transition: transform .15s;
-      position: relative;
-    }
+    .card { position:relative; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); transition: transform .15s; }
     .card:hover { transform: translateY(-2px); }
 
+    /* pulsante admin */
     .remove-btn {
       position:absolute;
       top:6px;
@@ -50,47 +44,21 @@
       cursor:pointer;
       display:none;
       opacity:0.8;
+      z-index: 2;
     }
-    body.admin-mode .remove-btn { display:block !important; }
+    .remove-btn:hover { opacity:1; background:#c9302c; }
+    body.admin .remove-btn { display:block !important; }
 
-    .thumb {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      border-radius: 8px;
-      background: #eee;
-    }
+    .thumb { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #eee; }
+    .title { margin: 8px 0 4px; font-weight: 600; font-size: 14px; color: #222; line-height: 1.3; height: 38px; overflow: hidden; }
+    .price { color: #0a7; font-weight: 700; margin-bottom: 6px; }
 
-    .title {
-      margin: 8px 0 4px;
-      font-weight: 600;
-      font-size: 14px;
-      color: #222;
-      line-height: 1.3;
-      height: 38px;
-      overflow: hidden;
-    }
-
-    .price {
-      color: #0a7;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+    .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
     .logo {
       height: 22px;
-      width: 78px; 
+      width: 78px;
       object-fit: contain;
-      opacity: .85;
-      display: block;
-    }
       opacity: .85;
       display: block;
     }
@@ -98,106 +66,104 @@
     .dim { color:#666; font-size:12px; }
     a { text-decoration: none; color: inherit; }
 
-    .toolbar,
-    form.filters,
-    form.searchbar {
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-bottom:16px;
-      align-items:center;
+    .toolbar, form.filters, form.searchbar { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center; }
+    form.filters, form.searchbar {
       background:#fff;
       padding:8px 12px;
       border-radius:8px;
       box-shadow:0 1px 4px rgba(0,0,0,0.05);
     }
-
-    select,input {
-      padding:6px 8px;
-      border:1px solid #ccc;
-      border-radius:6px;
-    }
-
-    button {
-      padding:6px 10px;
-      border:none;
-      background:#0a7;
-      color:#fff;
-      border-radius:6px;
-      cursor:pointer;
-    }
+    select,input { padding:6px 8px;border:1px solid #ccc;border-radius:6px; }
+    button { padding:6px 10px;border:none;background:#0a7;color:#fff;border-radius:6px;cursor:pointer; }
     button:hover { background:#088; }
+    .back { padding:8px 12px;background:#fff;border-radius:8px;border:1px solid #ddd;color:#333; }
 
-    .back {
-      padding:8px 12px;
-      background:#fff;
-      border-radius:8px;
-      border:1px solid #ddd;
-      color:#333;
-    }
-
-    .pillbar {
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin: 8px 0 16px;
-    }
-
-    .pill {
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:6px 10px;
-      border:1px solid #ddd;
-      background:#fff;
-      border-radius:999px;
-      font-size:14px;
-    }
-
-    .pill.active {
-      border-color:#0a7;
-      color:#0a7;
-      font-weight:600;
-    }
+    .pillbar { display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 16px; }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid #ddd; background:#fff; border-radius:999px; font-size:14px; }
+    .pill.active { border-color:#0a7; color:#0a7; font-weight:600; }
 
     .admin-only { display:none; }
-    body.admin-mode .admin-only { display:flex !important; }
+    body.admin .admin-only { display:flex !important; }
 
-    .pagination {
-      display:flex;
-      justify-content:center;
-      gap:10px;
-      margin-top:32px;
+    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; align-items:center; }
+    .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
+
+    /* riga compatta "cerca anche su" */
+    .external-search-line{
+      margin: 6px 0 14px;
+      font-size:14px;
+      color:#444;
+      background:#fff;
+      border:1px solid #e6e6e6;
+      border-radius:10px;
+      padding:10px 12px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.05);
     }
-
-    .pagination a {
-      padding:8px 14px;
-      border-radius:8px;
-      background:white;
-      border:1px solid #ddd;
+    .external-search-line a{
+      font-weight:700;
+      color:#0a7;
+    }
+    .external-search-line a:hover{
+      text-decoration: underline;
+    }
+    .external-note{
+      font-size:12px;
+      color:#777;
+      margin-top:4px;
+      line-height:1.4;
     }
   </style>
+
+  <script>
+  document.addEventListener("keydown", e => {
+    if (e.altKey && e.key.toLowerCase() === "a") {
+      document.body.classList.toggle("admin");
+      alert("Admin mode " + (document.body.classList.contains("admin") ? "ATTIVA ✅" : "OFF ❌"));
+    }
+  });
+
+  function removeItem(hash, title){
+    if(!confirm("Eliminare e addestrare su questo oggetto?\n\n" + title)) return;
+
+    fetch("/remove_item", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({hash, title})
+    })
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.status==="ok"){
+        document.getElementById(hash)?.remove();
+      } else {
+        alert("Errore: "+(res.msg || "operazione non riuscita"));
+      }
+    });
+  }
+  </script>
 
 </head>
 <body>
 
-<div id="rf-wrapper">
-
   <div class="toolbar">
-    <a href="https://retrofutureitalia.it" target="_top" class="back">← Nuova ricerca</a>
+    <a href="/" class="back">← Nuova ricerca</a>
     <div>Risultati per: <strong>{{ query or 'tutto' }}</strong></div>
-    <div class="dim">Modalità admin disponibile</div>
+    <div class="dim">Premi <b>ALT+A</b> per admin mode</div>
   </div>
 
+  <!-- pillbar visibile solo in admin -->
   <div class="pillbar admin-only">
     <a class="pill {% if scope=='tutti' %}active{% endif %}"
-       href="{{ url_for('search', q=None, era=None, vintage_class=None, category=None, price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
+       href="{{ url_for('search',
+         q=None, era=None, vintage_class=None, category=None,
+         price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
       👁️ Mostra tutti
     </a>
 
     <a class="pill {% if not scope or scope!='tutti' %}active{% endif %}"
-       href="{{ url_for('search', q=query or '', era=era or '', vintage_class=vintage_class or '', category=category or '',
-          price_min=price_min, price_max=price_max, sort=sort or 'score', scope=None, page=1) }}">
+       href="{{ url_for('search',
+         q=query or '', era=era or '', vintage_class=vintage_class or '',
+         category=category or '', price_min=price_min, price_max=price_max,
+         sort=sort or 'score', scope=None, page=1) }}">
       🔎 Ricerca filtrata
     </a>
   </div>
@@ -252,19 +218,34 @@
     {{ risultati|length }} risultati trovati
   </div>
 
+  {% if query %}
+    <div class="external-search-line">
+      🔎 Vuoi più risultati? Cerca anche su:
+      <a target="_blank" rel="noopener"
+         href="https://www.facebook.com/marketplace/search/?query={{ query|urlencode }}">
+        Facebook Marketplace ↗
+      </a>
+      ·
+      <a target="_blank" rel="noopener"
+         href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}">
+        Wallapop ↗
+      </a>
+      <div class="external-note">Nota: ricerca su siti esterni.</div>
+    </div>
+  {% endif %}
+
   <div class="grid">
     {% for r in risultati %}
     <div class="card" id="{{ r.hash }}">
-      <button class="remove-btn" onclick="removeItem('{{ r.hash }}', '{{ r.title }}')">🗑️</button>
+      <button class="remove-btn"
+        onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
 
-      <!-- TRACK CLICK SICURO -->
-      <a href="{{ r.url }}" target="_blank" rel="noopener"
-         data-query="{{ query }}"
-         data-title="{{ r.title }}"
-         onclick="trackClick(event)">
+      <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
 
-        <img class="thumb" src="{{ r.image }}" alt="{{ r.title }}" loading="lazy" />
-        <div class="title">{{ r.title }}</div>
+        <img class="thumb" src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}" alt="{{ r.title or r.titolo }}" loading="lazy" />
+
+        <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
+
         <div class="price">
           {% if r.price_display %}
             {{ r.price_display }}
@@ -288,64 +269,17 @@
 
   <div class="pagination">
     {% if page > 1 %}
-      <a href="{{ url_for('search', q=query, era=era, vintage_class=vintage_class, category=category,
-                      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
+      <a href="{{ url_for('search',
+        q=query, era=era, vintage_class=vintage_class, category=category,
+        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
     {% endif %}
     <span>Pagina {{ page }}</span>
     {% if risultati|length == 50 %}
-      <a href="{{ url_for('search', q=query, era=era, vintage_class=vintage_class, category=category,
-                      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
+      <a href="{{ url_for('search',
+        q=query, era=era, vintage_class=vintage_class, category=category,
+        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
     {% endif %}
   </div>
-
-</div>
-
-<!-- AUTO HEIGHT -->
-<script>
-function updateHeight() {
-  const newH = document.body.scrollHeight;
-  window.parent.postMessage({ rf_height: newH }, "*");
-}
-new ResizeObserver(updateHeight).observe(document.body);
-updateHeight();
-</script>
-
-<!-- AUTO-LEARN: TRACK CLICK SICURO -->
-<script>
-function trackClick(event) {
-    const el = event.currentTarget;
-    const query = el.dataset.query || "";
-    const title = el.dataset.title || "";
-
-    fetch("/track_click", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, title })
-    });
-}
-</script>
-
-<!-- MODALITÀ ADMIN -->
-<script>
-const urlParams = new URLSearchParams(window.location.search);
-const isAdmin = urlParams.get("admin") === "1";
-
-function enableAdminMode() {
-  document.body.classList.add("admin-mode");
-  document.querySelectorAll(".admin-only").forEach(el => el.style.display = "flex");
-  document.querySelectorAll(".remove-btn").forEach(btn => btn.style.display = "block");
-}
-
-if (isAdmin) {
-  document.addEventListener("DOMContentLoaded", enableAdminMode);
-}
-
-window.addEventListener("message", function(event) {
-  if (event.data?.action === "enable-admin") {
-    enableAdminMode();
-  }
-});
-</script>
 
 </body>
 </html>
