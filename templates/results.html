@@ -44,7 +44,6 @@
       cursor:pointer;
       display:none;
       opacity:0.8;
-      z-index: 2;
     }
     .remove-btn:hover { opacity:1; background:#c9302c; }
     body.admin .remove-btn { display:block !important; }
@@ -57,7 +56,7 @@
 
     .logo {
       height: 22px;
-      width: 78px;
+      width: 78px; 
       object-fit: contain;
       opacity: .85;
       display: block;
@@ -67,12 +66,7 @@
     a { text-decoration: none; color: inherit; }
 
     .toolbar, form.filters, form.searchbar { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center; }
-    form.filters, form.searchbar {
-      background:#fff;
-      padding:8px 12px;
-      border-radius:8px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.05);
-    }
+    form.filters, form.searchbar { background:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05); }
     select,input { padding:6px 8px;border:1px solid #ccc;border-radius:6px; }
     button { padding:6px 10px;border:none;background:#0a7;color:#fff;border-radius:6px;cursor:pointer; }
     button:hover { background:#088; }
@@ -85,33 +79,9 @@
     .admin-only { display:none; }
     body.admin .admin-only { display:flex !important; }
 
-    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; align-items:center; }
+    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; }
     .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
 
-    /* riga compatta "cerca anche su" */
-    .external-search-line{
-      margin: 6px 0 14px;
-      font-size:14px;
-      color:#444;
-      background:#fff;
-      border:1px solid #e6e6e6;
-      border-radius:10px;
-      padding:10px 12px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.05);
-    }
-    .external-search-line a{
-      font-weight:700;
-      color:#0a7;
-    }
-    .external-search-line a:hover{
-      text-decoration: underline;
-    }
-    .external-note{
-      font-size:12px;
-      color:#777;
-      margin-top:4px;
-      line-height:1.4;
-    }
   </style>
 
   <script>
@@ -218,22 +188,6 @@
     {{ risultati|length }} risultati trovati
   </div>
 
-  {% if query %}
-    <div class="external-search-line">
-      🔎 Vuoi più risultati? Cerca anche su:
-      <a target="_blank" rel="noopener"
-         href="https://www.facebook.com/marketplace/search/?query={{ query|urlencode }}">
-        Facebook Marketplace ↗
-      </a>
-      ·
-      <a target="_blank" rel="noopener"
-         href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}">
-        Wallapop ↗
-      </a>
-      <div class="external-note">Nota: ricerca su siti esterni.</div>
-    </div>
-  {% endif %}
-
   <div class="grid">
     {% for r in risultati %}
     <div class="card" id="{{ r.hash }}">
@@ -283,3 +237,4 @@
 
 </body>
 </html>
+
