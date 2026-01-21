@@ -302,14 +302,18 @@
     let rafId = null;
 
     function getDocHeight() {
-      const doc = document.documentElement;
-      const body = document.body;
-      return Math.max(
-        body.scrollHeight, doc.scrollHeight,
-        body.offsetHeight, doc.offsetHeight,
-        body.clientHeight, doc.clientHeight
-      );
-    }
+  const body = document.body;
+
+  // altezza reale dell'ultimo elemento visibile nella pagina
+  const last = body.lastElementChild;
+  if (last) {
+    const r = last.getBoundingClientRect();
+    return Math.ceil(r.bottom + window.scrollY);
+  }
+
+  return Math.ceil(body.getBoundingClientRect().height);
+}
+
 
     function postHeight(force) {
       const now = Date.now();
