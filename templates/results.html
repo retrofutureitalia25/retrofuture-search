@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   {% set page_title = (query ~ " – Risultati | RetroFuture Search") if query else "Risultati | RetroFuture Search" %}
   <title>{{ page_title }}</title>
 
@@ -44,6 +46,7 @@
       cursor:pointer;
       display:none;
       opacity:0.8;
+      z-index: 2;
     }
     .remove-btn:hover { opacity:1; background:#c9302c; }
     body.admin .remove-btn { display:block !important; }
@@ -56,7 +59,7 @@
 
     .logo {
       height: 22px;
-      width: 78px; 
+      width: 78px;
       object-fit: contain;
       opacity: .85;
       display: block;
@@ -66,7 +69,12 @@
     a { text-decoration: none; color: inherit; }
 
     .toolbar, form.filters, form.searchbar { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center; }
-    form.filters, form.searchbar { background:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+    form.filters, form.searchbar {
+      background:#fff;
+      padding:8px 12px;
+      border-radius:8px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.05);
+    }
     select,input { padding:6px 8px;border:1px solid #ccc;border-radius:6px; }
     button { padding:6px 10px;border:none;background:#0a7;color:#fff;border-radius:6px;cursor:pointer; }
     button:hover { background:#088; }
@@ -79,9 +87,33 @@
     .admin-only { display:none; }
     body.admin .admin-only { display:flex !important; }
 
-    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; }
+    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; align-items:center; }
     .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
 
+    /* riga compatta "cerca anche su" */
+    .external-search-line{
+      margin: 6px 0 14px;
+      font-size:14px;
+      color:#444;
+      background:#fff;
+      border:1px solid #e6e6e6;
+      border-radius:10px;
+      padding:10px 12px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.05);
+    }
+    .external-search-line a{
+      font-weight:700;
+      color:#0a7;
+    }
+    .external-search-line a:hover{
+      text-decoration: underline;
+    }
+    .external-note{
+      font-size:12px;
+      color:#777;
+      margin-top:4px;
+      line-height:1.4;
+    }
   </style>
 
   <script>
@@ -110,8 +142,8 @@
     });
   }
   </script>
-
 </head>
+
 <body>
 
   <div class="toolbar">
@@ -188,15 +220,33 @@
     {{ risultati|length }} risultati trovati
   </div>
 
-  <div class="grid">
+  {% if query %}
+    <div class="external-search-line">
+      🔎 Vuoi più risultati? Cerca anche su:
+      <a target="_blank" rel="noopener"
+         href="https://www.facebook.com/marketplace/search/?query={{ query|urlencode }}">
+        Facebook Marketplace ↗
+      </a>
+      ·
+      <a target="_blank" rel="noopener"
+         href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}">
+        Wallapop ↗
+      </a>
+      <div class="external-note">Nota: ricerca su siti esterni.</div>
+    </div>
+  {% endif %}
+
+  <div class="grid" id="rf-grid">
     {% for r in risultati %}
     <div class="card" id="{{ r.hash }}">
       <button class="remove-btn"
         onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
 
       <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
-
-        <img class="thumb" src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}" alt="{{ r.title or r.titolo }}" loading="lazy" />
+        <img class="thumb"
+             src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}"
+             alt="{{ r.title or r.titolo }}"
+             loading="lazy" />
 
         <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
 
@@ -215,7 +265,6 @@
             <img class="logo" src="/static/loghi/{{ r.source|lower }}.png" alt="{{ r.source }}">
           {% endif %}
         </div>
-
       </a>
     </div>
     {% endfor %}
@@ -234,6 +283,94 @@
         price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
     {% endif %}
   </div>
+
+  <!-- ✅ SCRIPT DEFINITIVO: invia altezza al parent (WordPress iframe) -->
+  <script>
+  (function () {
+    // Se la pagina NON è in iframe, non fare nulla
+    if (window.self === window.top) return;
+
+    // targetOrigin: prova a ricavarlo dal referrer (più sicuro), altrimenti usa "*"
+    let targetOrigin = "*";
+    try {
+      if (document.referrer) {
+        targetOrigin = new URL(document.referrer).origin;
+      }
+    } catch (e) {}
+
+    let lastSent = 0;
+    let rafId = null;
+
+    function getDocHeight() {
+      const doc = document.documentElement;
+      const body = document.body;
+      return Math.max(
+        body.scrollHeight, doc.scrollHeight,
+        body.offsetHeight, doc.offsetHeight,
+        body.clientHeight, doc.clientHeight
+      );
+    }
+
+    function postHeight(force) {
+      const now = Date.now();
+      if (!force && (now - lastSent) < 120) return; // throttle
+      lastSent = now;
+
+      const h = getDocHeight();
+      window.parent.postMessage({ rf_height: h }, targetOrigin);
+    }
+
+    function schedule(force) {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => postHeight(!!force));
+    }
+
+    // 1) subito + dopo un attimo
+    schedule(true);
+    setTimeout(() => schedule(true), 120);
+    setTimeout(() => schedule(true), 400);
+    setTimeout(() => schedule(true), 900);
+
+    // 2) onload
+    window.addEventListener("load", () => schedule(true));
+
+    // 3) resize (viewport cambia)
+    window.addEventListener("resize", () => schedule(false));
+
+    // 4) quando finiscono di caricare le immagini (lazy compreso)
+    function hookImages() {
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach(img => {
+        if (img.dataset.rfHooked) return;
+        img.dataset.rfHooked = "1";
+        img.addEventListener("load", () => schedule(true));
+        img.addEventListener("error", () => schedule(true));
+      });
+    }
+    hookImages();
+
+    // 5) osserva cambiamenti DOM (risultati/paginazione/filtri)
+    const mo = new MutationObserver(() => {
+      hookImages();
+      schedule(false);
+    });
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+    // 6) osserva cambiamenti di dimensione reali
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => schedule(false));
+      ro.observe(document.body);
+    }
+
+    // 7) font load può cambiare altezza
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => schedule(true)).catch(()=>{});
+    }
+
+    // 8) safety ping (per casi strani di Elementor)
+    setInterval(() => schedule(false), 2000);
+  })();
+  </script>
 
 </body>
 </html>
