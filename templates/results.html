@@ -32,7 +32,6 @@
     .card { position:relative; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); transition: transform .15s; }
     .card:hover { transform: translateY(-2px); }
 
-    /* pulsante admin */
     .remove-btn {
       position:absolute;
       top:6px;
@@ -90,7 +89,6 @@
     .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; align-items:center; }
     .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
 
-    /* riga compatta "cerca anche su" */
     .external-search-line{
       margin: 6px 0 14px;
       font-size:14px;
@@ -105,9 +103,7 @@
       font-weight:700;
       color:#0a7;
     }
-    .external-search-line a:hover{
-      text-decoration: underline;
-    }
+    .external-search-line a:hover{ text-decoration: underline; }
     .external-note{
       font-size:12px;
       color:#777;
@@ -152,7 +148,6 @@
     <div class="dim">Premi <b>ALT+A</b> per admin mode</div>
   </div>
 
-  <!-- pillbar visibile solo in admin -->
   <div class="pillbar admin-only">
     <a class="pill {% if scope=='tutti' %}active{% endif %}"
        href="{{ url_for('search',
@@ -284,100 +279,84 @@
     {% endif %}
   </div>
 
-  <!-- ✅ SCRIPT DEFINITIVO: invia altezza al parent (WordPress iframe) -->
+  <!-- ✅ FIX: calcolo altezza robusto per iframe -->
   <script>
   (function () {
-    // Se la pagina NON è in iframe, non fare nulla
     if (window.self === window.top) return;
 
-    // targetOrigin: prova a ricavarlo dal referrer (più sicuro), altrimenti usa "*"
     let targetOrigin = "*";
     try {
       if (document.referrer) targetOrigin = new URL(document.referrer).origin;
     } catch (e) {}
 
-    let lastHeight = 0;
     let rafId = null;
+    let lastSent = 0;
 
     function getDocHeight() {
-      const doc = document.documentElement;
       const body = document.body;
+      const html = document.documentElement;
 
+      // metodo robusto: prende il massimo tra tutte le altezze “vere”
       const h = Math.max(
-        body.scrollHeight, doc.scrollHeight,
-        body.offsetHeight, doc.offsetHeight
+        body.scrollHeight, html.scrollHeight,
+        body.offsetHeight, html.offsetHeight,
+        body.clientHeight, html.clientHeight
       );
 
-      return Math.ceil(h + 20); // buffer anti-tagli
+      return Math.ceil(h);
     }
 
     function postHeight(force) {
+      const now = Date.now();
+      if (!force && (now - lastSent) < 120) return;
+      lastSent = now;
+
       const h = getDocHeight();
-      if (!force && Math.abs(h - lastHeight) < 4) return; // niente spam
-      lastHeight = h;
       window.parent.postMessage({ rf_height: h }, targetOrigin);
     }
 
     function schedule(force) {
       if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        postHeight(!!force);
-        rafId = null;
-      });
+      rafId = requestAnimationFrame(() => postHeight(!!force));
     }
 
-    // 1) subito + dopo piccoli delay (font/immagini/grid)
+    // iniziale + step (immagini lazy ecc.)
     schedule(true);
     setTimeout(() => schedule(true), 120);
-    setTimeout(() => schedule(true), 350);
+    setTimeout(() => schedule(true), 400);
     setTimeout(() => schedule(true), 900);
-    setTimeout(() => schedule(true), 1500);
 
-    // 2) onload
     window.addEventListener("load", () => schedule(true));
-
-    // 3) resize
     window.addEventListener("resize", () => schedule(false));
 
-    // 4) immagini (lazy compreso)
+    // immagini
     function hookImages() {
-      const imgs = document.querySelectorAll("img");
-      imgs.forEach(img => {
+      document.querySelectorAll("img").forEach(img => {
         if (img.dataset.rfHooked) return;
         img.dataset.rfHooked = "1";
-        if (img.complete) return;
-        img.addEventListener("load", () => schedule(true), { passive:true });
-        img.addEventListener("error", () => schedule(true), { passive:true });
+        img.addEventListener("load", () => schedule(true));
+        img.addEventListener("error", () => schedule(true));
       });
     }
     hookImages();
 
-    // 5) osserva cambi DOM
+    // DOM changes
     const mo = new MutationObserver(() => {
       hookImages();
       schedule(false);
     });
-    mo.observe(document.body, { childList: true, subtree: true });
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true });
 
-    // 6) osserva cambi di dimensione
+    // ResizeObserver (se disponibile)
     if (window.ResizeObserver) {
       const ro = new ResizeObserver(() => schedule(false));
       ro.observe(document.body);
     }
 
-    // 7) font load
+    // font load
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => schedule(true)).catch(()=>{});
     }
-
-    // 8) micro-fallback all’avvio (non infinito)
-    let ticks = 0;
-    const t = setInterval(() => {
-      schedule(false);
-      ticks++;
-      if (ticks >= 6) clearInterval(t); // 3 secondi
-    }, 500);
-
   })();
   </script>
 
