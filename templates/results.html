@@ -26,7 +26,14 @@
   {% endif %}
 
   <style>
+    /* ✅ evita che html/body “si stirino” al viewport dell’iframe */
+    html, body { height: auto; min-height: 0; }
+
     body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f4f4f4; }
+
+    /* wrapper misurabile: qui c’è TUTTO il contenuto reale */
+    #rf-page { display: block; }
+
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
 
     .card { position:relative; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); transition: transform .15s; }
@@ -142,144 +149,148 @@
 
 <body>
 
-  <div class="toolbar">
-    <a href="/" class="back">← Nuova ricerca</a>
-    <div>Risultati per: <strong>{{ query or 'tutto' }}</strong></div>
-    <div class="dim">Premi <b>ALT+A</b> per admin mode</div>
-  </div>
+  <div id="rf-page">
 
-  <div class="pillbar admin-only">
-    <a class="pill {% if scope=='tutti' %}active{% endif %}"
-       href="{{ url_for('search',
-         q=None, era=None, vintage_class=None, category=None,
-         price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
-      👁️ Mostra tutti
-    </a>
+    <div class="toolbar">
+      <a href="/" class="back">← Nuova ricerca</a>
+      <div>Risultati per: <strong>{{ query or 'tutto' }}</strong></div>
+      <div class="dim">Premi <b>ALT+A</b> per admin mode</div>
+    </div>
 
-    <a class="pill {% if not scope or scope!='tutti' %}active{% endif %}"
-       href="{{ url_for('search',
-         q=query or '', era=era or '', vintage_class=vintage_class or '',
-         category=category or '', price_min=price_min, price_max=price_max,
-         sort=sort or 'score', scope=None, page=1) }}">
-      🔎 Ricerca filtrata
-    </a>
-  </div>
+    <div class="pillbar admin-only">
+      <a class="pill {% if scope=='tutti' %}active{% endif %}"
+         href="{{ url_for('search',
+           q=None, era=None, vintage_class=None, category=None,
+           price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
+        👁️ Mostra tutti
+      </a>
 
-  <form method="get" action="/search" class="searchbar">
-    <input type="text" name="q" placeholder="Cerca un altro prodotto..." value="{{ query }}">
-    <input type="hidden" name="scope" value="{{ scope }}">
-    <button type="submit">Cerca</button>
-  </form>
+      <a class="pill {% if not scope or scope!='tutti' %}active{% endif %}"
+         href="{{ url_for('search',
+           q=query or '', era=era or '', vintage_class=vintage_class or '',
+           category=category or '', price_min=price_min, price_max=price_max,
+           sort=sort or 'score', scope=None, page=1) }}">
+        🔎 Ricerca filtrata
+      </a>
+    </div>
 
-  <form method="get" action="/search" class="filters">
-    <input type="hidden" name="q" value="{{ query }}">
-    <input type="hidden" name="scope" value="{{ scope }}">
+    <form method="get" action="/search" class="searchbar">
+      <input type="text" name="q" placeholder="Cerca un altro prodotto..." value="{{ query }}">
+      <input type="hidden" name="scope" value="{{ scope }}">
+      <button type="submit">Cerca</button>
+    </form>
 
-    <select name="era" {% if scope=='tutti' %}disabled{% endif %}>
-      <option value="">Epoca</option>
-      {% for e in ['anni_50','anni_60','anni_70','anni_80','anni_90','vintage_generico'] %}
-      <option value="{{e}}" {% if era==e %}selected{% endif %}>{{e.replace('_',' ')}}</option>
+    <form method="get" action="/search" class="filters">
+      <input type="hidden" name="q" value="{{ query }}">
+      <input type="hidden" name="scope" value="{{ scope }}">
+
+      <select name="era" {% if scope=='tutti' %}disabled{% endif %}>
+        <option value="">Epoca</option>
+        {% for e in ['anni_50','anni_60','anni_70','anni_80','anni_90','vintage_generico'] %}
+        <option value="{{e}}" {% if era==e %}selected{% endif %}>{{e.replace('_',' ')}}</option>
+        {% endfor %}
+      </select>
+
+      <select name="vintage_class" {% if scope=='tutti' %}disabled{% endif %}>
+        <option value="">Classe Vintage</option>
+        <option value="strong_vintage" {% if vintage_class=='strong_vintage' %}selected{% endif %}>Strong</option>
+        <option value="vintage" {% if vintage_class=='vintage' %}selected{% endif %}>Vintage</option>
+      </select>
+
+      <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
+        <option value="">Categoria</option>
+        <option value="arredamento" {% if category=='arredamento' %}selected{% endif %}>Arredamento</option>
+        <option value="moda" {% if category=='moda' %}selected{% endif %}>Moda</option>
+        <option value="tecnologia" {% if category=='tecnologia' %}selected{% endif %}>Tecnologia</option>
+        <option value="collezionismo" {% if category=='collezionismo' %}selected{% endif %}>Collezionismo</option>
+        <option value="vario" {% if category=='vario' %}selected{% endif %}>Altro</option>
+      </select>
+
+      <input type="number" step="0.01" name="price_min" placeholder="Min €" value="{{ price_min }}" {% if scope=='tutti' %}disabled{% endif %}>
+      <input type="number" step="0.01" name="price_max" placeholder="Max €" value="{{ price_max }}" {% if scope=='tutti' %}disabled{% endif %}>
+
+      <select name="sort" {% if scope=='tutti' %}disabled{% endif %}>
+        <option value="score" {% if sort=='score' %}selected{% endif %}>Migliori risultati</option>
+        <option value="date" {% if sort=='date' %}selected{% endif %}>Più recenti (aggiornati)</option>
+        <option value="added" {% if sort=='added' %}selected{% endif %}>Più recenti (aggiunti)</option>
+        <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Prezzo crescente</option>
+        <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Prezzo decrescente</option>
+      </select>
+
+      <button type="submit" {% if scope=='tutti' %}disabled{% endif %}>Applica</button>
+    </form>
+
+    <div class="results-count">
+      {{ risultati|length }} risultati trovati
+    </div>
+
+    {% if query %}
+      <div class="external-search-line">
+        🔎 Vuoi più risultati? Cerca anche su:
+        <a target="_blank" rel="noopener"
+           href="https://www.facebook.com/marketplace/search/?query={{ query|urlencode }}">
+          Facebook Marketplace ↗
+        </a>
+        ·
+        <a target="_blank" rel="noopener"
+           href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}">
+          Wallapop ↗
+        </a>
+        <div class="external-note">Nota: ricerca su siti esterni.</div>
+      </div>
+    {% endif %}
+
+    <div class="grid" id="rf-grid">
+      {% for r in risultati %}
+      <div class="card" id="{{ r.hash }}">
+        <button class="remove-btn"
+          onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
+
+        <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
+          <img class="thumb"
+               src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}"
+               alt="{{ r.title or r.titolo }}"
+               loading="lazy" />
+
+          <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
+
+          <div class="price">
+            {% if r.price_display %}
+              {{ r.price_display }}
+            {% elif r.price_value %}
+              {{ "%.2f"|format(r.price_value|float) }} EUR
+            {% else %}
+              Prezzo non disponibile
+            {% endif %}
+          </div>
+
+          <div class="meta">
+            {% if r.source %}
+              <img class="logo" src="/static/loghi/{{ r.source|lower }}.png" alt="{{ r.source }}">
+            {% endif %}
+          </div>
+        </a>
+      </div>
       {% endfor %}
-    </select>
-
-    <select name="vintage_class" {% if scope=='tutti' %}disabled{% endif %}>
-      <option value="">Classe Vintage</option>
-      <option value="strong_vintage" {% if vintage_class=='strong_vintage' %}selected{% endif %}>Strong</option>
-      <option value="vintage" {% if vintage_class=='vintage' %}selected{% endif %}>Vintage</option>
-    </select>
-
-    <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
-      <option value="">Categoria</option>
-      <option value="arredamento" {% if category=='arredamento' %}selected{% endif %}>Arredamento</option>
-      <option value="moda" {% if category=='moda' %}selected{% endif %}>Moda</option>
-      <option value="tecnologia" {% if category=='tecnologia' %}selected{% endif %}>Tecnologia</option>
-      <option value="collezionismo" {% if category=='collezionismo' %}selected{% endif %}>Collezionismo</option>
-      <option value="vario" {% if category=='vario' %}selected{% endif %}>Altro</option>
-    </select>
-
-    <input type="number" step="0.01" name="price_min" placeholder="Min €" value="{{ price_min }}" {% if scope=='tutti' %}disabled{% endif %}>
-    <input type="number" step="0.01" name="price_max" placeholder="Max €" value="{{ price_max }}" {% if scope=='tutti' %}disabled{% endif %}>
-
-    <select name="sort" {% if scope=='tutti' %}disabled{% endif %}>
-      <option value="score" {% if sort=='score' %}selected{% endif %}>Migliori risultati</option>
-      <option value="date" {% if sort=='date' %}selected{% endif %}>Più recenti (aggiornati)</option>
-      <option value="added" {% if sort=='added' %}selected{% endif %}>Più recenti (aggiunti)</option>
-      <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Prezzo crescente</option>
-      <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Prezzo decrescente</option>
-    </select>
-
-    <button type="submit" {% if scope=='tutti' %}disabled{% endif %}>Applica</button>
-  </form>
-
-  <div class="results-count">
-    {{ risultati|length }} risultati trovati
-  </div>
-
-  {% if query %}
-    <div class="external-search-line">
-      🔎 Vuoi più risultati? Cerca anche su:
-      <a target="_blank" rel="noopener"
-         href="https://www.facebook.com/marketplace/search/?query={{ query|urlencode }}">
-        Facebook Marketplace ↗
-      </a>
-      ·
-      <a target="_blank" rel="noopener"
-         href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}">
-        Wallapop ↗
-      </a>
-      <div class="external-note">Nota: ricerca su siti esterni.</div>
     </div>
-  {% endif %}
 
-  <div class="grid" id="rf-grid">
-    {% for r in risultati %}
-    <div class="card" id="{{ r.hash }}">
-      <button class="remove-btn"
-        onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
-
-      <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
-        <img class="thumb"
-             src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}"
-             alt="{{ r.title or r.titolo }}"
-             loading="lazy" />
-
-        <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
-
-        <div class="price">
-          {% if r.price_display %}
-            {{ r.price_display }}
-          {% elif r.price_value %}
-            {{ "%.2f"|format(r.price_value|float) }} EUR
-          {% else %}
-            Prezzo non disponibile
-          {% endif %}
-        </div>
-
-        <div class="meta">
-          {% if r.source %}
-            <img class="logo" src="/static/loghi/{{ r.source|lower }}.png" alt="{{ r.source }}">
-          {% endif %}
-        </div>
-      </a>
+    <div class="pagination">
+      {% if page > 1 %}
+        <a href="{{ url_for('search',
+          q=query, era=era, vintage_class=vintage_class, category=category,
+          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
+      {% endif %}
+      <span>Pagina {{ page }}</span>
+      {% if risultati|length == 50 %}
+        <a href="{{ url_for('search',
+          q=query, era=era, vintage_class=vintage_class, category=category,
+          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
+      {% endif %}
     </div>
-    {% endfor %}
-  </div>
 
-  <div class="pagination">
-    {% if page > 1 %}
-      <a href="{{ url_for('search',
-        q=query, era=era, vintage_class=vintage_class, category=category,
-        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
-    {% endif %}
-    <span>Pagina {{ page }}</span>
-    {% if risultati|length == 50 %}
-      <a href="{{ url_for('search',
-        q=query, era=era, vintage_class=vintage_class, category=category,
-        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
-    {% endif %}
-  </div>
+  </div><!-- /#rf-page -->
 
-  <!-- ✅ FIX: iframe height (NO LOOP) -->
+  <!-- ✅ iframe height: misura il fondo REALE del contenuto (NO spazio vuoto) -->
   <script>
   (function () {
     if (window.self === window.top) return;
@@ -292,17 +303,14 @@
     let rafId = null;
     let lastSent = 0;
 
-    function getDocHeight() {
-      const body = document.body;
-      const html = document.documentElement;
+    function getContentBottomPx() {
+      const page = document.getElementById("rf-page");
+      if (!page) return Math.ceil(document.body.scrollHeight);
 
-      // ✅ SOLO contenuto reale (evita loop con iframe alto)
-      const h = Math.max(
-        body ? body.scrollHeight : 0,
-        html ? html.scrollHeight : 0
-      );
-
-      return Math.ceil(h);
+      const rect = page.getBoundingClientRect();
+      // bottom del contenuto + scrollY = altezza reale del contenuto nel documento
+      const bottom = rect.bottom + window.scrollY;
+      return Math.max(0, Math.ceil(bottom));
     }
 
     function postHeight(force) {
@@ -310,7 +318,7 @@
       if (!force && (now - lastSent) < 120) return;
       lastSent = now;
 
-      const h = getDocHeight();
+      const h = getContentBottomPx();
       window.parent.postMessage({ rf_height: h }, targetOrigin);
     }
 
@@ -328,7 +336,6 @@
     window.addEventListener("load", () => schedule(true));
     window.addEventListener("resize", () => schedule(true));
 
-    // immagini
     function hookImages() {
       document.querySelectorAll("img").forEach(img => {
         if (img.dataset.rfHooked) return;
@@ -339,19 +346,20 @@
     }
     hookImages();
 
-    // DOM changes
     const mo = new MutationObserver(() => {
       hookImages();
-      schedule(true);
+      schedule(false);
     });
     mo.observe(document.body, { childList: true, subtree: true, attributes: true });
 
-    // font load
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => schedule(true)).catch(()=>{});
     }
   })();
   </script>
+
+</body>
+</html>
 
 </body>
 </html>
