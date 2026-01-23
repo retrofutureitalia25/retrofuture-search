@@ -26,33 +26,18 @@
   {% endif %}
 
   <style>
-    /* ✅ evita che html/body “si stirino” al viewport dell’iframe */
-    html, body { height: auto; min-height: 0; }
-
+    html, body { height:auto; }
     body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f4f4f4; }
 
-    /* wrapper misurabile: qui c’è TUTTO il contenuto reale */
-    #rf-page { display: block; }
-
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
-
     .card { position:relative; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); transition: transform .15s; }
     .card:hover { transform: translateY(-2px); }
 
     .remove-btn {
-      position:absolute;
-      top:6px;
-      right:6px;
-      background:#d9534f;
-      border:none;
-      color:white;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:12px;
-      cursor:pointer;
-      display:none;
-      opacity:0.8;
-      z-index: 2;
+      position:absolute; top:6px; right:6px;
+      background:#d9534f; border:none; color:white;
+      padding:4px 8px; border-radius:6px; font-size:12px; cursor:pointer;
+      display:none; opacity:0.8; z-index:2;
     }
     .remove-btn:hover { opacity:1; background:#c9302c; }
     body.admin .remove-btn { display:block !important; }
@@ -62,29 +47,20 @@
     .price { color: #0a7; font-weight: 700; margin-bottom: 6px; }
 
     .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-    .logo {
-      height: 22px;
-      width: 78px;
-      object-fit: contain;
-      opacity: .85;
-      display: block;
-    }
+    .logo { height: 22px; width: 78px; object-fit: contain; opacity: .85; display: block; }
 
     .dim { color:#666; font-size:12px; }
     a { text-decoration: none; color: inherit; }
 
-    .toolbar, form.filters, form.searchbar { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center; }
+    .toolbar, form.filters, form.searchbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; align-items:center; }
     form.filters, form.searchbar {
-      background:#fff;
-      padding:8px 12px;
-      border-radius:8px;
+      background:#fff; padding:8px 12px; border-radius:8px;
       box-shadow:0 1px 4px rgba(0,0,0,0.05);
     }
-    select,input { padding:6px 8px;border:1px solid #ccc;border-radius:6px; }
-    button { padding:6px 10px;border:none;background:#0a7;color:#fff;border-radius:6px;cursor:pointer; }
+    select,input { padding:6px 8px; border:1px solid #ccc; border-radius:6px; }
+    button { padding:6px 10px; border:none; background:#0a7; color:#fff; border-radius:6px; cursor:pointer; }
     button:hover { background:#088; }
-    .back { padding:8px 12px;background:#fff;border-radius:8px;border:1px solid #ddd;color:#333; }
+    .back { padding:8px 12px; background:#fff; border-radius:8px; border:1px solid #ddd; color:#333; }
 
     .pillbar { display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 16px; }
     .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid #ddd; background:#fff; border-radius:999px; font-size:14px; }
@@ -93,8 +69,8 @@
     .admin-only { display:none; }
     body.admin .admin-only { display:flex !important; }
 
-    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; align-items:center; }
-    .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
+    .pagination { display:flex; justify-content:center; gap:10px; margin-top:32px; align-items:center; }
+    .pagination a { padding:8px 14px; border-radius:8px; background:white; border:1px solid #ddd; }
 
     .external-search-line{
       margin: 6px 0 14px;
@@ -106,24 +82,16 @@
       padding:10px 12px;
       box-shadow:0 1px 4px rgba(0,0,0,0.05);
     }
-    .external-search-line a{
-      font-weight:700;
-      color:#0a7;
-    }
+    .external-search-line a{ font-weight:700; color:#0a7; }
     .external-search-line a:hover{ text-decoration: underline; }
-    .external-note{
-      font-size:12px;
-      color:#777;
-      margin-top:4px;
-      line-height:1.4;
-    }
+    .external-note{ font-size:12px; color:#777; margin-top:4px; line-height:1.4; }
   </style>
 
   <script>
   document.addEventListener("keydown", e => {
     if (e.altKey && e.key.toLowerCase() === "a") {
       document.body.classList.toggle("admin");
-      alert("Admin mode " + (document.body.classList.contains("admin") ? "ATTIVA ✅" : "OFF ❌"));
+      // niente alert: evita micro-shift / reflow e non rompe l'altezza
     }
   });
 
@@ -149,6 +117,7 @@
 
 <body>
 
+  <!-- ✅ wrapper: misuriamo SOLO questo -->
   <div id="rf-page">
 
     <div class="toolbar">
@@ -290,7 +259,7 @@
 
   </div><!-- /#rf-page -->
 
-  <!-- ✅ iframe height: misura il fondo REALE del contenuto (NO spazio vuoto) -->
+  <!-- ✅ FIX: altezza iframe basata su wrapper (niente valori “sparati”) -->
   <script>
   (function () {
     if (window.self === window.top) return;
@@ -300,17 +269,16 @@
       if (document.referrer) targetOrigin = new URL(document.referrer).origin;
     } catch (e) {}
 
+    const pageEl = document.getElementById("rf-page");
+    if (!pageEl) return;
+
     let rafId = null;
     let lastSent = 0;
 
-    function getContentBottomPx() {
-      const page = document.getElementById("rf-page");
-      if (!page) return Math.ceil(document.body.scrollHeight);
-
-      const rect = page.getBoundingClientRect();
-      // bottom del contenuto + scrollY = altezza reale del contenuto nel documento
-      const bottom = rect.bottom + window.scrollY;
-      return Math.max(0, Math.ceil(bottom));
+    function getPageHeight() {
+      // Misura il contenuto vero del wrapper
+      const h = pageEl.scrollHeight;
+      return Math.ceil(h);
     }
 
     function postHeight(force) {
@@ -318,7 +286,7 @@
       if (!force && (now - lastSent) < 120) return;
       lastSent = now;
 
-      const h = getContentBottomPx();
+      const h = getPageHeight();
       window.parent.postMessage({ rf_height: h }, targetOrigin);
     }
 
@@ -327,17 +295,16 @@
       rafId = requestAnimationFrame(() => postHeight(!!force));
     }
 
-    // iniziale + step (immagini lazy ecc.)
     schedule(true);
     setTimeout(() => schedule(true), 120);
     setTimeout(() => schedule(true), 400);
     setTimeout(() => schedule(true), 900);
 
     window.addEventListener("load", () => schedule(true));
-    window.addEventListener("resize", () => schedule(true));
+    window.addEventListener("resize", () => schedule(false));
 
     function hookImages() {
-      document.querySelectorAll("img").forEach(img => {
+      pageEl.querySelectorAll("img").forEach(img => {
         if (img.dataset.rfHooked) return;
         img.dataset.rfHooked = "1";
         img.addEventListener("load", () => schedule(true));
@@ -350,7 +317,12 @@
       hookImages();
       schedule(false);
     });
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+    mo.observe(pageEl, { childList: true, subtree: true, attributes: true });
+
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => schedule(false));
+      ro.observe(pageEl);
+    }
 
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => schedule(true)).catch(()=>{});
@@ -360,7 +332,3 @@
 
 </body>
 </html>
-
-</body>
-</html>
-
