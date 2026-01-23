@@ -279,7 +279,7 @@
     {% endif %}
   </div>
 
-  <!-- ✅ FIX: calcolo altezza robusto per iframe -->
+  <!-- ✅ FIX: iframe height (NO LOOP) -->
   <script>
   (function () {
     if (window.self === window.top) return;
@@ -296,11 +296,10 @@
       const body = document.body;
       const html = document.documentElement;
 
-      // metodo robusto: prende il massimo tra tutte le altezze “vere”
+      // ✅ SOLO contenuto reale (evita loop con iframe alto)
       const h = Math.max(
-        body.scrollHeight, html.scrollHeight,
-        body.offsetHeight, html.offsetHeight,
-        body.clientHeight, html.clientHeight
+        body ? body.scrollHeight : 0,
+        html ? html.scrollHeight : 0
       );
 
       return Math.ceil(h);
@@ -327,7 +326,7 @@
     setTimeout(() => schedule(true), 900);
 
     window.addEventListener("load", () => schedule(true));
-    window.addEventListener("resize", () => schedule(false));
+    window.addEventListener("resize", () => schedule(true));
 
     // immagini
     function hookImages() {
@@ -343,15 +342,9 @@
     // DOM changes
     const mo = new MutationObserver(() => {
       hookImages();
-      schedule(false);
+      schedule(true);
     });
     mo.observe(document.body, { childList: true, subtree: true, attributes: true });
-
-    // ResizeObserver (se disponibile)
-    if (window.ResizeObserver) {
-      const ro = new ResizeObserver(() => schedule(false));
-      ro.observe(document.body);
-    }
 
     // font load
     if (document.fonts && document.fonts.ready) {
