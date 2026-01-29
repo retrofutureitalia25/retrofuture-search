@@ -25,14 +25,314 @@
       price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1, _external=True) }}">
   {% endif %}
 
+  <!-- ✅ Font (alternativa legale/semplice ai loghi) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f4f4f4; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
+    html, body { height:auto; }
+    body{
+      font-family: system-ui, Arial, sans-serif;
+      margin:0;
+      background:#f4f4f4;
+    }
+    #rf-root{ padding: 10px 10px 14px; }
+    a{ text-decoration:none; color:inherit; }
 
-    .card { position:relative; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.08); transition: transform .15s; }
-    .card:hover { transform: translateY(-2px); }
+    /* ✅ TOPBAR (ultra compatta) */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:#fff;
+      border:1px solid #e9e9e9;
+      border-radius:12px;
+      padding:6px 10px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.04);
+      margin-bottom:8px;
+    }
+    .topbar-left{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      min-width:0;
+    }
+    .topbar-title{
+      font-size:15px;
+      font-weight:900;
+      color:#111;
+      letter-spacing:-0.2px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      height:22px;
+      padding:0 9px;
+      border-radius:999px;
+      font-size:12.5px;
+      border:1px solid #e6e6e6;
+      background:#fafafa;
+      color:#333;
+      max-width:240px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .chip-query{
+      border-color: rgba(0,170,119,.25);
+      background: rgba(0,170,119,.08);
+      color:#066;
+      font-weight:900;
+    }
+    .chip-muted{ color:#666; }
+    .chip-admin{
+      border-style:dashed;
+      color:#666;
+      background:#fff;
+      user-select:none;
+    }
+    .chip-count{
+      border-color:#ddd;
+      background:#f3f3f3;
+      color:#111;
+      font-weight:900;
+    }
 
-    .remove-btn {
+    .topbar-right{ flex:0 0 auto; }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      height:28px;
+      padding:0 10px;
+      border-radius:9px;
+      font-weight:900;
+      border:1px solid #ddd;
+      background:#fff;
+      color:#111;
+      white-space:nowrap;
+      font-size:12.5px;
+    }
+    .btn:hover{ background:#f6f6f6; border-color:#ccc; }
+
+    /* ✅ CARD CONTROLLO */
+    .control-card{
+      background:#fff;
+      border:1px solid #eee;
+      border-radius:12px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.04);
+      padding:8px;
+      margin-bottom:8px;
+    }
+    .control-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    .search-row{ margin-bottom:6px; }
+    .filters-row{
+      padding-top:6px;
+      border-top:1px solid #f1f1f1;
+      justify-content:flex-start;
+      gap:8px;
+    }
+    .q-wrap{
+      flex: 1 1 560px;
+      min-width:260px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .field{
+      flex: 0 1 140px;
+      min-width:120px;
+      display:flex;
+    }
+    .field-wide{
+      flex: 0 1 190px;
+      min-width:150px;
+    }
+    .price-field{ max-width: 105px; }
+
+    input, select{
+      height:28px;
+      padding:0 9px;
+      border:1px solid #cfcfcf;
+      border-radius:9px;
+      background:#fff;
+      width:100%;
+      font-size:13px;
+    }
+    .q-wrap input{
+      flex: 1 1 auto;
+      min-width:240px;
+    }
+    button{
+      height:28px;
+      padding:0 12px;
+      border:none;
+      background:#0a7;
+      color:#fff;
+      border-radius:9px;
+      cursor:pointer;
+      font-weight:900;
+      white-space:nowrap;
+      font-size:13px;
+    }
+    button:hover{ background:#088; }
+    button[disabled]{ opacity:.55; cursor:not-allowed; }
+
+    .results-count{ display:none; }
+
+    /* ✅ Altri risultati */
+    .external-inline{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:6px;
+      padding-top:6px;
+      border-top:1px solid #f1f1f1;
+      font-size:13px;
+      color:#333;
+    }
+    .external-left{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      min-width:0;
+    }
+    .ext-label{
+      font-weight:900;
+      color:#444;
+      white-space:nowrap;
+    }
+
+    /* ✅ Bottoni esterni: testo bianco + sfondo brand */
+    .ext-pill{
+      height:28px;
+      width: 150px;              /* uguali e più visibili */
+      justify-content:center;
+      padding:0 36px 0 36px;      /* spazio badge freccia */
+      border-radius:999px;
+      border:1px solid transparent;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+      transition: transform .12s, filter .12s, box-shadow .12s, border-color .12s;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+    }
+    .ext-pill:hover{
+      transform: translateY(-1px);
+      filter: brightness(0.98);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.12);
+    }
+    .ext-pill:focus-visible{
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(10,170,119,.25), 0 10px 18px rgba(0,0,0,0.12);
+    }
+
+    .ext-text{
+      font-size:14px;
+      font-weight:900;
+      line-height:1;
+      display:inline-block;
+      transform: translateY(0.5px);
+      color:#fff;                /* ✅ bianco */
+      text-shadow: 0 1px 0 rgba(0,0,0,0.10);
+    }
+
+    /* ✅ Facebook */
+    .ext-facebook{
+      background:#1877F2;
+      border-color:#166fe5;
+    }
+    .ext-facebook .ext-text{
+      font-family: "Inter", system-ui, sans-serif;
+      letter-spacing:-0.2px;
+    }
+
+    /* ✅ Wallapop */
+    .ext-wallapop{
+      background:#00C4A7;
+      border-color:#00b095;
+    }
+    .ext-wallapop .ext-text{
+      font-family: "Poppins", system-ui, sans-serif;
+      letter-spacing:-0.2px;
+      text-transform: lowercase;
+    }
+
+    /* ✅ freccia: badge leggibile su qualsiasi colore */
+    .ext-arrow{
+      font-size:10px;
+      font-weight:900;
+      line-height:1;
+      padding:2px 6px;
+      border-radius:999px;
+      background: rgba(255,255,255,.22);
+      border:1px solid rgba(255,255,255,.35);
+      color:#fff;
+      pointer-events:none;
+      margin-left: 6px;
+      text-shadow: 0 1px 0 rgba(0,0,0,0.10);
+    }
+
+    .ext-note{
+      font-size:11.5px;
+      color:#777;
+      white-space:nowrap;
+    }
+
+    /* admin pills */
+    .pillbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin: 8px 0 10px;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border:1px solid #ddd;
+      background:#fff;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:800;
+    }
+    .pill.active{ border-color:#0a7; color:#0a7; font-weight:900; }
+
+    .admin-only{ display:none; }
+    body.admin .admin-only{ display:flex !important; }
+    body.admin .admin-only-inline{ display:inline-flex !important; }
+    .admin-only-inline{ display:none; }
+
+    /* grid cards */
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+      gap:14px;
+    }
+    .card{
+      position:relative;
+      background:#fff;
+      border-radius:12px;
+      padding:10px;
+      box-shadow:0 2px 6px rgba(0,0,0,.08);
+      transition:transform .15s;
+    }
+    .card:hover{ transform:translateY(-2px); }
+
+    .remove-btn{
       position:absolute;
       top:6px;
       right:6px;
@@ -40,249 +340,289 @@
       border:none;
       color:white;
       padding:4px 8px;
-      border-radius:6px;
+      border-radius:8px;
       font-size:12px;
       cursor:pointer;
       display:none;
-      opacity:0.8;
-      z-index: 2;
+      opacity:0.85;
+      z-index:2;
+      height:auto;
     }
-    .remove-btn:hover { opacity:1; background:#c9302c; }
-    body.admin .remove-btn { display:block !important; }
+    .remove-btn:hover{ opacity:1; background:#c9302c; }
+    body.admin .remove-btn{ display:block !important; }
 
-    .thumb { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #eee; }
-    .title { margin: 8px 0 4px; font-weight: 600; font-size: 14px; color: #222; line-height: 1.3; height: 38px; overflow: hidden; }
-    .price { color: #0a7; font-weight: 700; margin-bottom: 6px; }
-
-    .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-    .logo {
-      height: 22px;
-      width: 78px;
-      object-fit: contain;
-      opacity: .85;
-      display: block;
-    }
-
-    .dim { color:#666; font-size:12px; }
-    a { text-decoration: none; color: inherit; }
-
-    .toolbar, form.filters, form.searchbar { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center; }
-    form.filters, form.searchbar {
-      background:#fff;
-      padding:8px 12px;
-      border-radius:8px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.05);
-    }
-    select,input { padding:6px 8px;border:1px solid #ccc;border-radius:6px; }
-    button { padding:6px 10px;border:none;background:#0a7;color:#fff;border-radius:6px;cursor:pointer; }
-    button:hover { background:#088; }
-    .back { padding:8px 12px;background:#fff;border-radius:8px;border:1px solid #ddd;color:#333; }
-
-    .pillbar { display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0 16px; }
-    .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid #ddd; background:#fff; border-radius:999px; font-size:14px; }
-    .pill.active { border-color:#0a7; color:#0a7; font-weight:600; }
-
-    .admin-only { display:none; }
-    body.admin .admin-only { display:flex !important; }
-
-    .pagination { display:flex;justify-content:center;gap:10px;margin-top:32px; align-items:center; }
-    .pagination a { padding:8px 14px;border-radius:8px;background:white;border:1px solid #ddd; }
-
-    .external-search-line{
-      margin: 6px 0 14px;
-      font-size:14px;
-      color:#444;
-      background:#fff;
-      border:1px solid #e6e6e6;
+    .thumb{
+      width:100%;
+      height:180px;
+      object-fit:cover;
       border-radius:10px;
-      padding:10px 12px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.05);
+      background:#eee;
     }
-    .external-search-line a{
+    .title{
+      margin:8px 0 4px;
       font-weight:700;
-      color:#0a7;
+      font-size:14px;
+      color:#222;
+      line-height:1.3;
+      height:38px;
+      overflow:hidden;
     }
-    .external-search-line a:hover{ text-decoration: underline; }
-    .external-note{
-      font-size:12px;
-      color:#777;
-      margin-top:4px;
-      line-height:1.4;
+    .price{ color:#0a7; font-weight:900; margin-bottom:6px; }
+    .meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .logo{ height:22px; width:78px; object-fit:contain; opacity:.85; display:block; }
+
+    .pagination{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-top:18px;
+      align-items:center;
+    }
+    .pagination a{
+      padding:8px 14px;
+      border-radius:10px;
+      background:white;
+      border:1px solid #ddd;
+      font-weight:900;
+    }
+
+    @media (max-width: 520px){
+      #rf-root{ padding:10px 9px 14px; }
+      .topbar{ align-items:flex-start; }
+      .topbar-right{ width:100%; }
+      .btn{ width:100%; }
+
+      .q-wrap{ flex: 1 1 100%; }
+      .field{ min-width:46%; flex: 1 1 46%; }
+      .field-wide{ min-width: 100%; flex: 1 1 100%; }
+      .price-field{ max-width:none; }
+
+      .external-inline{ align-items:flex-start; }
+      .ext-note{ white-space:normal; }
+
+      .ext-pill{ width: 190px; height:30px; }
+      .ext-text{ font-size:13px; }
     }
   </style>
 
   <script>
-  document.addEventListener("keydown", e => {
-    if (e.altKey && e.key.toLowerCase() === "a") {
-      document.body.classList.toggle("admin");
-      alert("Admin mode " + (document.body.classList.contains("admin") ? "ATTIVA ✅" : "OFF ❌"));
-    }
-  });
-
-  function removeItem(hash, title){
-    if(!confirm("Eliminare e addestrare su questo oggetto?\n\n" + title)) return;
-
-    fetch("/remove_item", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({hash, title})
-    })
-    .then(r=>r.json())
-    .then(res=>{
-      if(res.status==="ok"){
-        document.getElementById(hash)?.remove();
-      } else {
-        alert("Errore: "+(res.msg || "operazione non riuscita"));
+    document.addEventListener("keydown", e => {
+      if (e.altKey && e.key.toLowerCase() === "a") {
+        document.body.classList.toggle("admin");
+        alert("Admin mode " + (document.body.classList.contains("admin") ? "ATTIVA ✅" : "OFF ❌"));
       }
     });
-  }
+
+    function removeItem(hash, title){
+      if(!confirm("Eliminare e addestrare su questo oggetto?\n\n" + title)) return;
+
+      fetch("/remove_item", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({hash, title})
+      })
+      .then(r=>r.json())
+      .then(res=>{
+        if(res.status==="ok"){
+          document.getElementById(hash)?.remove();
+        } else {
+          alert("Errore: "+(res.msg || "operazione non riuscita"));
+        }
+      });
+    }
   </script>
 </head>
 
 <body>
+  <div id="rf-root">
 
-  <div class="toolbar">
-    <a href="/" class="back">← Nuova ricerca</a>
-    <div>Risultati per: <strong>{{ query or 'tutto' }}</strong></div>
-    <div class="dim">Premi <b>ALT+A</b> per admin mode</div>
-  </div>
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Risultati</div>
 
-  <div class="pillbar admin-only">
-    <a class="pill {% if scope=='tutti' %}active{% endif %}"
-       href="{{ url_for('search',
-         q=None, era=None, vintage_class=None, category=None,
-         price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
-      👁️ Mostra tutti
-    </a>
+        {% if query %}
+          <span class="chip chip-query">{{ query }}</span>
+        {% else %}
+          <span class="chip chip-muted">tutto</span>
+        {% endif %}
 
-    <a class="pill {% if not scope or scope!='tutti' %}active{% endif %}"
-       href="{{ url_for('search',
-         q=query or '', era=era or '', vintage_class=vintage_class or '',
-         category=category or '', price_min=price_min, price_max=price_max,
-         sort=sort or 'score', scope=None, page=1) }}">
-      🔎 Ricerca filtrata
-    </a>
-  </div>
+        <span class="chip chip-count">
+          {{ risultati|length }} {{ 'risultato' if risultati|length == 1 else 'risultati' }}
+        </span>
 
-  <form method="get" action="/search" class="searchbar">
-    <input type="text" name="q" placeholder="Cerca un altro prodotto..." value="{{ query }}">
-    <input type="hidden" name="scope" value="{{ scope }}">
-    <button type="submit">Cerca</button>
-  </form>
+        <span class="chip chip-admin admin-only-inline">ALT+A</span>
+      </div>
 
-  <form method="get" action="/search" class="filters">
-    <input type="hidden" name="q" value="{{ query }}">
-    <input type="hidden" name="scope" value="{{ scope }}">
+      <div class="topbar-right">
+        <a href="/" class="btn">Nuova ricerca</a>
+      </div>
+    </div>
 
-    <select name="era" {% if scope=='tutti' %}disabled{% endif %}>
-      <option value="">Epoca</option>
-      {% for e in ['anni_50','anni_60','anni_70','anni_80','anni_90','vintage_generico'] %}
-      <option value="{{e}}" {% if era==e %}selected{% endif %}>{{e.replace('_',' ')}}</option>
+    <div class="pillbar admin-only">
+      <a class="pill {% if scope=='tutti' %}active{% endif %}"
+         href="{{ url_for('search',
+           q=None, era=None, vintage_class=None, category=None,
+           price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
+        👁️ Mostra tutti
+      </a>
+
+      <a class="pill {% if not scope or scope!='tutti' %}active{% endif %}"
+         href="{{ url_for('search',
+           q=query or '', era=era or '', vintage_class=vintage_class or '',
+           category=category or '', price_min=price_min, price_max=price_max,
+           sort=sort or 'score', scope=None, page=1) }}">
+        🔎 Ricerca filtrata
+      </a>
+    </div>
+
+    <div class="control-card">
+      <form method="get" action="/search">
+        <div class="control-row search-row">
+          <div class="q-wrap">
+            <input type="text" name="q" placeholder="Cerca un altro prodotto..." value="{{ query }}">
+            <input type="hidden" name="scope" value="{{ scope }}">
+            <button type="submit">Cerca</button>
+          </div>
+        </div>
+      </form>
+
+      <form method="get" action="/search">
+        <div class="control-row filters-row">
+          <input type="hidden" name="q" value="{{ query }}">
+          <input type="hidden" name="scope" value="{{ scope }}">
+
+          <div class="field">
+            <select name="era" {% if scope=='tutti' %}disabled{% endif %}>
+              <option value="">Epoca</option>
+              {% for e in ['anni_50','anni_60','anni_70','anni_80','anni_90','vintage_generico'] %}
+              <option value="{{e}}" {% if era==e %}selected{% endif %}>{{e.replace('_',' ')}}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <select name="vintage_class" {% if scope=='tutti' %}disabled{% endif %}>
+              <option value="">Classe Vintage</option>
+              <option value="strong_vintage" {% if vintage_class=='strong_vintage' %}selected{% endif %}>Strong</option>
+              <option value="vintage" {% if vintage_class=='vintage' %}selected{% endif %}>Vintage</option>
+            </select>
+          </div>
+
+          <div class="field field-wide">
+            <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
+              <option value="">Categoria</option>
+              <option value="arredamento" {% if category=='arredamento' %}selected{% endif %}>Arredamento</option>
+              <option value="moda" {% if category=='moda' %}selected{% endif %}>Moda</option>
+              <option value="tecnologia" {% if category=='tecnologia' %}selected{% endif %}>Tecnologia</option>
+              <option value="collezionismo" {% if category=='collezionismo' %}selected{% endif %}>Collezionismo</option>
+              <option value="vario" {% if category=='vario' %}selected{% endif %}>Altro</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <input class="price-field" type="number" step="0.01" name="price_min" placeholder="Min €" value="{{ price_min }}" {% if scope=='tutti' %}disabled{% endif %}>
+          </div>
+
+          <div class="field">
+            <input class="price-field" type="number" step="0.01" name="price_max" placeholder="Max €" value="{{ price_max }}" {% if scope=='tutti' %}disabled{% endif %}>
+          </div>
+
+          <div class="field">
+            <select name="sort" {% if scope=='tutti' %}disabled{% endif %}>
+              <option value="score" {% if sort=='score' %}selected{% endif %}>Migliori</option>
+              <option value="date" {% if sort=='date' %}selected{% endif %}>Aggiornati</option>
+              <option value="added" {% if sort=='added' %}selected{% endif %}>Aggiunti</option>
+              <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Prezzo ↑</option>
+              <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Prezzo ↓</option>
+            </select>
+          </div>
+
+          <button type="submit" {% if scope=='tutti' %}disabled{% endif %}>Applica</button>
+        </div>
+      </form>
+
+      {% if query %}
+        <div class="external-inline">
+          <div class="external-left">
+            <span class="ext-label">Altri risultati:</span>
+
+            <a class="ext-pill ext-facebook" target="_blank" rel="noopener"
+               href="https://www.facebook.com/marketplace/search/?query={{ query|urlencode }}"
+               aria-label="Apri su Facebook Marketplace">
+              <span class="ext-text">facebook marketplace</span>
+              <span class="ext-arrow">↗</span>
+            </a>
+
+            <a class="ext-pill ext-wallapop" target="_blank" rel="noopener"
+               href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}"
+               aria-label="Apri su Wallapop">
+              <span class="ext-text">wallapop</span>
+              <span class="ext-arrow">↗</span>
+            </a>
+          </div>
+
+          <div class="ext-note">siti esterni • marchi dei rispettivi proprietari</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="grid" id="rf-grid">
+      {% for r in risultati %}
+      <div class="card" id="{{ r.hash }}">
+        <button class="remove-btn"
+          onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
+
+        <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
+          <img class="thumb"
+               src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}"
+               alt="{{ r.title or r.titolo }}"
+               loading="lazy" />
+
+          <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
+
+          <div class="price">
+            {% if r.price_display %}
+              {{ r.price_display }}
+            {% elif r.price_value %}
+              {{ "%.2f"|format(r.price_value|float) }} EUR
+            {% else %}
+              Prezzo non disponibile
+            {% endif %}
+          </div>
+
+          <div class="meta">
+            {% if r.source %}
+              <img class="logo" src="/static/loghi/{{ r.source|lower }}.png" alt="{{ r.source }}">
+            {% endif %}
+          </div>
+        </a>
+      </div>
       {% endfor %}
-    </select>
-
-    <select name="vintage_class" {% if scope=='tutti' %}disabled{% endif %}>
-      <option value="">Classe Vintage</option>
-      <option value="strong_vintage" {% if vintage_class=='strong_vintage' %}selected{% endif %}>Strong</option>
-      <option value="vintage" {% if vintage_class=='vintage' %}selected{% endif %}>Vintage</option>
-    </select>
-
-    <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
-      <option value="">Categoria</option>
-      <option value="arredamento" {% if category=='arredamento' %}selected{% endif %}>Arredamento</option>
-      <option value="moda" {% if category=='moda' %}selected{% endif %}>Moda</option>
-      <option value="tecnologia" {% if category=='tecnologia' %}selected{% endif %}>Tecnologia</option>
-      <option value="collezionismo" {% if category=='collezionismo' %}selected{% endif %}>Collezionismo</option>
-      <option value="vario" {% if category=='vario' %}selected{% endif %}>Altro</option>
-    </select>
-
-    <input type="number" step="0.01" name="price_min" placeholder="Min €" value="{{ price_min }}" {% if scope=='tutti' %}disabled{% endif %}>
-    <input type="number" step="0.01" name="price_max" placeholder="Max €" value="{{ price_max }}" {% if scope=='tutti' %}disabled{% endif %}>
-
-    <select name="sort" {% if scope=='tutti' %}disabled{% endif %}>
-      <option value="score" {% if sort=='score' %}selected{% endif %}>Migliori risultati</option>
-      <option value="date" {% if sort=='date' %}selected{% endif %}>Più recenti (aggiornati)</option>
-      <option value="added" {% if sort=='added' %}selected{% endif %}>Più recenti (aggiunti)</option>
-      <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Prezzo crescente</option>
-      <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Prezzo decrescente</option>
-    </select>
-
-    <button type="submit" {% if scope=='tutti' %}disabled{% endif %}>Applica</button>
-  </form>
-
-  <div class="results-count">
-    {{ risultati|length }} risultati trovati
-  </div>
-
-  {% if query %}
-    <div class="external-search-line">
-      🔎 Vuoi più risultati? Cerca anche su:
-      <a target="_blank" rel="noopener"
-         href="https://www.facebook.com/marketplace/search/?query={{ query|urlencode }}">
-        Facebook Marketplace ↗
-      </a>
-      ·
-      <a target="_blank" rel="noopener"
-         href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}">
-        Wallapop ↗
-      </a>
-      <div class="external-note">Nota: ricerca su siti esterni.</div>
     </div>
-  {% endif %}
 
-  <div class="grid" id="rf-grid">
-    {% for r in risultati %}
-    <div class="card" id="{{ r.hash }}">
-      <button class="remove-btn"
-        onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
-
-      <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
-        <img class="thumb"
-             src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}"
-             alt="{{ r.title or r.titolo }}"
-             loading="lazy" />
-
-        <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
-
-        <div class="price">
-          {% if r.price_display %}
-            {{ r.price_display }}
-          {% elif r.price_value %}
-            {{ "%.2f"|format(r.price_value|float) }} EUR
-          {% else %}
-            Prezzo non disponibile
-          {% endif %}
-        </div>
-
-        <div class="meta">
-          {% if r.source %}
-            <img class="logo" src="/static/loghi/{{ r.source|lower }}.png" alt="{{ r.source }}">
-          {% endif %}
-        </div>
-      </a>
+    <div class="pagination">
+      {% if page > 1 %}
+        <a href="{{ url_for('search',
+          q=query, era=era, vintage_class=vintage_class, category=category,
+          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
+      {% endif %}
+      <span>Pagina {{ page }}</span>
+      {% if risultati|length == 50 %}
+        <a href="{{ url_for('search',
+          q=query, era=era, vintage_class=vintage_class, category=category,
+          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
+      {% endif %}
     </div>
-    {% endfor %}
+
   </div>
 
-  <div class="pagination">
-    {% if page > 1 %}
-      <a href="{{ url_for('search',
-        q=query, era=era, vintage_class=vintage_class, category=category,
-        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
-    {% endif %}
-    <span>Pagina {{ page }}</span>
-    {% if risultati|length == 50 %}
-      <a href="{{ url_for('search',
-        q=query, era=era, vintage_class=vintage_class, category=category,
-        price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
-    {% endif %}
-  </div>
-
-  <!-- ✅ FIX: calcolo altezza robusto per iframe -->
+  <!-- ✅ Altezza iframe: misura SOLO #rf-root -->
   <script>
   (function () {
     if (window.self === window.top) return;
+
+    const root = document.getElementById("rf-root");
+    if (!root) return;
 
     let targetOrigin = "*";
     try {
@@ -291,27 +631,22 @@
 
     let rafId = null;
     let lastSent = 0;
+    let lastH = 0;
 
-    function getDocHeight() {
-      const body = document.body;
-      const html = document.documentElement;
-
-      // metodo robusto: prende il massimo tra tutte le altezze “vere”
-      const h = Math.max(
-        body.scrollHeight, html.scrollHeight,
-        body.offsetHeight, html.offsetHeight,
-        body.clientHeight, html.clientHeight
-      );
-
+    function getContentHeight() {
+      const h = Math.max(root.scrollHeight, root.offsetHeight);
       return Math.ceil(h);
     }
 
     function postHeight(force) {
       const now = Date.now();
       if (!force && (now - lastSent) < 120) return;
-      lastSent = now;
 
-      const h = getDocHeight();
+      const h = getContentHeight();
+      if (!force && Math.abs(h - lastH) < 2) return;
+
+      lastSent = now;
+      lastH = h;
       window.parent.postMessage({ rf_height: h }, targetOrigin);
     }
 
@@ -320,7 +655,6 @@
       rafId = requestAnimationFrame(() => postHeight(!!force));
     }
 
-    // iniziale + step (immagini lazy ecc.)
     schedule(true);
     setTimeout(() => schedule(true), 120);
     setTimeout(() => schedule(true), 400);
@@ -329,9 +663,8 @@
     window.addEventListener("load", () => schedule(true));
     window.addEventListener("resize", () => schedule(false));
 
-    // immagini
     function hookImages() {
-      document.querySelectorAll("img").forEach(img => {
+      root.querySelectorAll("img").forEach(img => {
         if (img.dataset.rfHooked) return;
         img.dataset.rfHooked = "1";
         img.addEventListener("load", () => schedule(true));
@@ -340,20 +673,17 @@
     }
     hookImages();
 
-    // DOM changes
     const mo = new MutationObserver(() => {
       hookImages();
       schedule(false);
     });
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+    mo.observe(root, { childList: true, subtree: true, attributes: true });
 
-    // ResizeObserver (se disponibile)
     if (window.ResizeObserver) {
       const ro = new ResizeObserver(() => schedule(false));
-      ro.observe(document.body);
+      ro.observe(root);
     }
 
-    // font load
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => schedule(true)).catch(()=>{});
     }
@@ -362,3 +692,4 @@
 
 </body>
 </html>
+
