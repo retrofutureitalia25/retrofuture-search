@@ -410,6 +410,12 @@
       .ext-pill{ width: 190px; height:30px; }
       .ext-text{ font-size:13px; }
     }
+    
+    #rf-bottom-sentinel{
+       height: 1px;
+       width: 1px;
+    }
+
   </style>
 
   <script>
@@ -633,10 +639,11 @@
   {% endif %}
 </div>
 
-<!-- ✅ sentinel: fine contenuto reale -->
-<div id="rf-bottom-sentinel" style="height:1px;"></div>
-
 </div>
+
+<!-- ✅ sentinel: fine contenuto reale (DEVE stare dentro #rf-root) -->
+<div id="rf-bottom-sentinel"></div>
+
 
 <!-- ✅ Altezza iframe: misura SOLO #rf-root -->
 <script>
@@ -655,19 +662,17 @@
   let lastSent = 0;
   let lastH = 0;
 
-  function getContentHeight() {
-    const sentinel = document.getElementById("rf-bottom-sentinel");
+ function getContentHeight() {
+  const sentinel = document.getElementById("rf-bottom-sentinel");
+  if (sentinel) {
+    const rect = sentinel.getBoundingClientRect();
+    const h = Math.ceil(rect.bottom + window.scrollY);
+    return Math.max(1, h);
+  }
+  const h = Math.max(root.scrollHeight, root.offsetHeight);
+  return Math.ceil(h);
+}
 
-    // evita “altezza trascinata”
-    document.documentElement.style.height = "auto";
-    document.body.style.height = "auto";
-    root.style.height = "auto";
-
-    if (sentinel) {
-      const rect = sentinel.getBoundingClientRect();
-      const h = rect.bottom + window.scrollY;
-      return Math.ceil(h);
-    }
 
     const h = Math.max(root.scrollHeight, root.offsetHeight);
     return Math.ceil(h);
