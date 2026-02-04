@@ -611,94 +611,110 @@
     </div>
 
     <div class="pagination">
-      {% if page > 1 %}
-        <a href="{{ url_for('search',
-          q=query, era=era, category=category, source=source,
-          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
-      {% endif %}
-      <span>Pagina {{ page }}</span>
-      {% if risultati|length == 50 %}
-        <a href="{{ url_for('search',
-          q=query, era=era, category=category, source=source,
-          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
-      {% endif %}
-    </div>
+  {% if page > 1 %}
+    <a href="{{ url_for('search',
+      q=query, era=era, category=category, source=source,
+      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
+  {% endif %}
+  <span>Pagina {{ page }}</span>
+  {% if risultati|length == 50 %}
+    <a href="{{ url_for('search',
+      q=query, era=era, category=category, source=source,
+      price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
+  {% endif %}
+</div>
 
-  </div>
+<!-- ✅ sentinel: fine contenuto reale -->
+<div id="rf-bottom-sentinel" style="height:1px;"></div>
 
-  <!-- ✅ Altezza iframe: misura SOLO #rf-root -->
-  <script>
-  (function () {
-    if (window.self === window.top) return;
+</div>
 
-    const root = document.getElementById("rf-root");
-    if (!root) return;
+<!-- ✅ Altezza iframe: misura SOLO #rf-root -->
+<script>
+(function () {
+  if (window.self === window.top) return;
 
-    let targetOrigin = "*";
-    try {
-      if (document.referrer) targetOrigin = new URL(document.referrer).origin;
-    } catch (e) {}
+  const root = document.getElementById("rf-root");
+  if (!root) return;
 
-    let rafId = null;
-    let lastSent = 0;
-    let lastH = 0;
+  let targetOrigin = "*";
+  try {
+    if (document.referrer) targetOrigin = new URL(document.referrer).origin;
+  } catch (e) {}
 
-    function getContentHeight() {
-      const h = Math.max(root.scrollHeight, root.offsetHeight);
+  let rafId = null;
+  let lastSent = 0;
+  let lastH = 0;
+
+  function getContentHeight() {
+    const sentinel = document.getElementById("rf-bottom-sentinel");
+
+    // evita “altezza trascinata”
+    document.documentElement.style.height = "auto";
+    document.body.style.height = "auto";
+    root.style.height = "auto";
+
+    if (sentinel) {
+      const rect = sentinel.getBoundingClientRect();
+      const h = rect.bottom + window.scrollY;
       return Math.ceil(h);
     }
 
-    function postHeight(force) {
-      const now = Date.now();
-      if (!force && (now - lastSent) < 120) return;
+    const h = Math.max(root.scrollHeight, root.offsetHeight);
+    return Math.ceil(h);
+  }
 
-      const h = getContentHeight();
-      if (!force && Math.abs(h - lastH) < 2) return;
+  function postHeight(force) {
+    const now = Date.now();
+    if (!force && (now - lastSent) < 120) return;
 
-      lastSent = now;
-      lastH = h;
-      window.parent.postMessage({ rf_height: h }, targetOrigin);
-    }
+    const h = getContentHeight();
+    if (!force && Math.abs(h - lastH) < 2) return;
 
-    function schedule(force) {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => postHeight(!!force));
-    }
+    lastSent = now;
+    lastH = h;
+    window.parent.postMessage({ rf_height: h }, targetOrigin);
+  }
 
-    schedule(true);
-    setTimeout(() => schedule(true), 120);
-    setTimeout(() => schedule(true), 400);
-    setTimeout(() => schedule(true), 900);
+  function schedule(force) {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(() => postHeight(!!force));
+  }
 
-    window.addEventListener("load", () => schedule(true));
-    window.addEventListener("resize", () => schedule(false));
+  schedule(true);
+  setTimeout(() => schedule(true), 120);
+  setTimeout(() => schedule(true), 400);
+  setTimeout(() => schedule(true), 900);
 
-    function hookImages() {
-      root.querySelectorAll("img").forEach(img => {
-        if (img.dataset.rfHooked) return;
-        img.dataset.rfHooked = "1";
-        img.addEventListener("load", () => schedule(true));
-        img.addEventListener("error", () => schedule(true));
-      });
-    }
-    hookImages();
+  window.addEventListener("load", () => schedule(true));
+  window.addEventListener("resize", () => schedule(false));
 
-    const mo = new MutationObserver(() => {
-      hookImages();
-      schedule(false);
+  function hookImages() {
+    root.querySelectorAll("img").forEach(img => {
+      if (img.dataset.rfHooked) return;
+      img.dataset.rfHooked = "1";
+      img.addEventListener("load", () => schedule(true));
+      img.addEventListener("error", () => schedule(true));
     });
-    mo.observe(root, { childList: true, subtree: true, attributes: true });
+  }
+  hookImages();
 
-    if (window.ResizeObserver) {
-      const ro = new ResizeObserver(() => schedule(false));
-      ro.observe(root);
-    }
+  const mo = new MutationObserver(() => {
+    hookImages();
+    schedule(false);
+  });
+  mo.observe(root, { childList: true, subtree: true, attributes: true });
 
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => schedule(true)).catch(()=>{});
-    }
-  })();
-  </script>
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => schedule(false));
+    ro.observe(root);
+  }
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => schedule(true)).catch(()=>{});
+  }
+})();
+</script>
 
 </body>
 </html>
