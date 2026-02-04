@@ -11,17 +11,17 @@
   <meta name="robots" content="noindex, follow">
 
   <link rel="canonical" href="{{ url_for('search',
-      q=query, era=era, vintage_class=vintage_class, category=category,
+      q=query, era=era, category=category, source=source,
       price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page, _external=True) }}">
 
   {% if page and page>1 %}
   <link rel="prev" href="{{ url_for('search',
-      q=query, era=era, vintage_class=vintage_class, category=category,
+      q=query, era=era, category=category, source=source,
       price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1, _external=True) }}">
   {% endif %}
   {% if risultati|length == 50 %}
   <link rel="next" href="{{ url_for('search',
-      q=query, era=era, vintage_class=vintage_class, category=category,
+      q=query, era=era, category=category, source=source,
       price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1, _external=True) }}">
   {% endif %}
 
@@ -186,8 +186,6 @@
     button:hover{ background:#088; }
     button[disabled]{ opacity:.55; cursor:not-allowed; }
 
-    .results-count{ display:none; }
-
     /* ✅ Altri risultati */
     .external-inline{
       display:flex;
@@ -217,9 +215,9 @@
     /* ✅ Bottoni esterni: testo bianco + sfondo brand */
     .ext-pill{
       height:28px;
-      width: 150px;              /* uguali e più visibili */
+      width: 150px;
       justify-content:center;
-      padding:0 36px 0 36px;      /* spazio badge freccia */
+      padding:0 36px 0 36px;
       border-radius:999px;
       border:1px solid transparent;
       display:inline-flex;
@@ -245,7 +243,7 @@
       line-height:1;
       display:inline-block;
       transform: translateY(0.5px);
-      color:#fff;                /* ✅ bianco */
+      color:#fff;
       text-shadow: 0 1px 0 rgba(0,0,0,0.10);
     }
 
@@ -461,15 +459,15 @@
     <div class="pillbar admin-only">
       <a class="pill {% if scope=='tutti' %}active{% endif %}"
          href="{{ url_for('search',
-           q=None, era=None, vintage_class=None, category=None,
-           price_min=None, price_max=None, sort='added', scope='tutti', page=1) }}">
+           q=None, era=None, category=None, source=None,
+           price_min=None, price_max=None, sort='date', scope='tutti', page=1) }}">
         👁️ Mostra tutti
       </a>
 
       <a class="pill {% if not scope or scope!='tutti' %}active{% endif %}"
          href="{{ url_for('search',
-           q=query or '', era=era or '', vintage_class=vintage_class or '',
-           category=category or '', price_min=price_min, price_max=price_max,
+           q=query or '', era=era or '', category=category or '', source=source or '',
+           price_min=price_min, price_max=price_max,
            sort=sort or 'score', scope=None, page=1) }}">
         🔎 Ricerca filtrata
       </a>
@@ -494,44 +492,54 @@
           <div class="field">
             <select name="era" {% if scope=='tutti' %}disabled{% endif %}>
               <option value="">Epoca</option>
-              {% for e in ['anni_50','anni_60','anni_70','anni_80','anni_90','vintage_generico'] %}
+              {% for e in ['anni_50','anni_60','anni_70','anni_80','anni_90','anni_2000'] %}
               <option value="{{e}}" {% if era==e %}selected{% endif %}>{{e.replace('_',' ')}}</option>
               {% endfor %}
-            </select>
-          </div>
-
-          <div class="field">
-            <select name="vintage_class" {% if scope=='tutti' %}disabled{% endif %}>
-              <option value="">Classe Vintage</option>
-              <option value="strong_vintage" {% if vintage_class=='strong_vintage' %}selected{% endif %}>Strong</option>
-              <option value="vintage" {% if vintage_class=='vintage' %}selected{% endif %}>Vintage</option>
             </select>
           </div>
 
           <div class="field field-wide">
             <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
               <option value="">Categoria</option>
-              <option value="arredamento" {% if category=='arredamento' %}selected{% endif %}>Arredamento</option>
-              <option value="moda" {% if category=='moda' %}selected{% endif %}>Moda</option>
+
               <option value="tecnologia" {% if category=='tecnologia' %}selected{% endif %}>Tecnologia</option>
+              <option value="arredamento" {% if category=='arredamento' %}selected{% endif %}>Arredamento</option>
+              <option value="moda_accessori" {% if category=='moda_accessori' %}selected{% endif %}>Moda &amp; Accessori</option>
+              <option value="giochi_giocattoli" {% if category=='giochi_giocattoli' %}selected{% endif %}>Giochi &amp; Giocattoli</option>
+              <option value="musica_cinema" {% if category=='musica_cinema' %}selected{% endif %}>Musica &amp; Cinema</option>
+              <option value="auto_moto" {% if category=='auto_moto' %}selected{% endif %}>Auto &amp; Moto</option>
+              <option value="libri_fumetti" {% if category=='libri_fumetti' %}selected{% endif %}>Libri &amp; Fumetti</option>
+              <option value="cucina" {% if category=='cucina' %}selected{% endif %}>Cucina</option>
+              <option value="cartoleria" {% if category=='cartoleria' %}selected{% endif %}>Cartoleria</option>
               <option value="collezionismo" {% if category=='collezionismo' %}selected{% endif %}>Collezionismo</option>
-              <option value="vario" {% if category=='vario' %}selected{% endif %}>Altro</option>
+            </select>
+          </div>
+
+          <!-- ✅ Marketplace -->
+          <div class="field">
+            <select name="source" {% if scope=='tutti' %}disabled{% endif %}>
+              <option value="">Marketplace</option>
+              <option value="ebay" {% if source=='ebay' %}selected{% endif %}>eBay</option>
+              <option value="vinted" {% if source=='vinted' %}selected{% endif %}>Vinted</option>
+              <option value="subito" {% if source=='subito' %}selected{% endif %}>Subito</option>
+              <option value="mercatino" {% if source=='mercatino' %}selected{% endif %}>Mercatino</option>
             </select>
           </div>
 
           <div class="field">
-            <input class="price-field" type="number" step="0.01" name="price_min" placeholder="Min €" value="{{ price_min }}" {% if scope=='tutti' %}disabled{% endif %}>
+            <input class="price-field" type="number" step="0.01" name="price_min" placeholder="Min €"
+                   value="{{ price_min }}" {% if scope=='tutti' %}disabled{% endif %}>
           </div>
 
           <div class="field">
-            <input class="price-field" type="number" step="0.01" name="price_max" placeholder="Max €" value="{{ price_max }}" {% if scope=='tutti' %}disabled{% endif %}>
+            <input class="price-field" type="number" step="0.01" name="price_max" placeholder="Max €"
+                   value="{{ price_max }}" {% if scope=='tutti' %}disabled{% endif %}>
           </div>
 
           <div class="field">
             <select name="sort" {% if scope=='tutti' %}disabled{% endif %}>
               <option value="score" {% if sort=='score' %}selected{% endif %}>Migliori</option>
-              <option value="date" {% if sort=='date' %}selected{% endif %}>Aggiornati</option>
-              <option value="added" {% if sort=='added' %}selected{% endif %}>Aggiunti</option>
+              <option value="date" {% if sort=='date' %}selected{% endif %}>Aggiunti di recente</option>
               <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Prezzo ↑</option>
               <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Prezzo ↓</option>
             </select>
@@ -546,12 +554,14 @@
           <div class="external-left">
             <span class="ext-label">Altri risultati:</span>
 
-            <a class="ext-pill ext-facebook" target="_blank" rel="noopener"
-               href="https://www.facebook.com/marketplace/search/?query={{ query|urlencode }}"
+           <a class="ext-pill ext-facebook" target="_blank" rel="noopener"
+               href="https://www.facebook.com/marketplace/np/rome/search/?query={{ query|default('vintage')|urlencode }}&radius=500"
                aria-label="Apri su Facebook Marketplace">
-              <span class="ext-text">facebook marketplace</span>
-              <span class="ext-arrow">↗</span>
-            </a>
+             <span class="ext-text">facebook marketplace</span>
+             <span class="ext-arrow">↗</span>
+           </a>
+
+
 
             <a class="ext-pill ext-wallapop" target="_blank" rel="noopener"
                href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}"
@@ -603,13 +613,13 @@
     <div class="pagination">
       {% if page > 1 %}
         <a href="{{ url_for('search',
-          q=query, era=era, vintage_class=vintage_class, category=category,
+          q=query, era=era, category=category, source=source,
           price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
       {% endif %}
       <span>Pagina {{ page }}</span>
       {% if risultati|length == 50 %}
         <a href="{{ url_for('search',
-          q=query, era=era, vintage_class=vintage_class, category=category,
+          q=query, era=era, category=category, source=source,
           price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
       {% endif %}
     </div>
@@ -692,4 +702,3 @@
 
 </body>
 </html>
-
