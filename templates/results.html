@@ -31,13 +31,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    html, body { height:auto; }
+    /* ✅ Importante: evita “altezza trascinata” del documento iframe */
+    html, body{
+      margin:0;
+      padding:0;
+      height:auto !important;
+      min-height:0 !important;
+    }
+
     body{
       font-family: system-ui, Arial, sans-serif;
-      margin:0;
       background:#f4f4f4;
     }
-    #rf-root{ padding: 10px 10px 14px; }
+
+    #rf-root{
+      padding: 10px 10px 14px;
+      height:auto !important;
+      min-height:0 !important;
+    }
+
     a{ text-decoration:none; color:inherit; }
 
     /* ✅ TOPBAR (ultra compatta) */
@@ -319,6 +331,7 @@
       display:grid;
       grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
       gap:14px;
+      align-content:start;
     }
     .card{
       position:relative;
@@ -554,14 +567,12 @@
           <div class="external-left">
             <span class="ext-label">Altri risultati:</span>
 
-           <a class="ext-pill ext-facebook" target="_blank" rel="noopener"
+            <a class="ext-pill ext-facebook" target="_blank" rel="noopener"
                href="https://www.facebook.com/marketplace/np/rome/search/?query={{ query|default('vintage')|urlencode }}&radius=500"
                aria-label="Apri su Facebook Marketplace">
-             <span class="ext-text">facebook marketplace</span>
-             <span class="ext-arrow">↗</span>
-           </a>
-
-
+              <span class="ext-text">facebook marketplace</span>
+              <span class="ext-arrow">↗</span>
+            </a>
 
             <a class="ext-pill ext-wallapop" target="_blank" rel="noopener"
                href="https://it.wallapop.com/app/search?keywords={{ query|urlencode }}"
@@ -624,15 +635,19 @@
       {% endif %}
     </div>
 
+    <!-- ✅ sentinel: fine contenuto reale (serve per misurare altezza senza “vuoto”) -->
+    <div id="rf-bottom-sentinel" style="height:1px;"></div>
+
   </div>
 
-  <!-- ✅ Altezza iframe: misura SOLO #rf-root -->
+  <!-- ✅ Altezza iframe: misura #rf-bottom-sentinel (più preciso di scrollHeight) -->
   <script>
   (function () {
     if (window.self === window.top) return;
 
     const root = document.getElementById("rf-root");
-    if (!root) return;
+    const sentinel = document.getElementById("rf-bottom-sentinel");
+    if (!root || !sentinel) return;
 
     let targetOrigin = "*";
     try {
@@ -640,12 +655,13 @@
     } catch (e) {}
 
     let rafId = null;
-    let lastSent = 0;
     let lastH = 0;
+    let lastSent = 0;
 
     function getContentHeight() {
-      const h = Math.max(root.scrollHeight, root.offsetHeight);
-      return Math.ceil(h);
+      const rect = sentinel.getBoundingClientRect();
+      const h = rect.bottom + window.scrollY;
+      return Math.max(1, Math.ceil(h));
     }
 
     function postHeight(force) {
@@ -655,8 +671,8 @@
       const h = getContentHeight();
       if (!force && Math.abs(h - lastH) < 2) return;
 
-      lastSent = now;
       lastH = h;
+      lastSent = now;
       window.parent.postMessage({ rf_height: h }, targetOrigin);
     }
 
@@ -665,6 +681,7 @@
       rafId = requestAnimationFrame(() => postHeight(!!force));
     }
 
+    // invii “a raffica” per immagini/font/layout
     schedule(true);
     setTimeout(() => schedule(true), 120);
     setTimeout(() => schedule(true), 400);
@@ -673,20 +690,14 @@
     window.addEventListener("load", () => schedule(true));
     window.addEventListener("resize", () => schedule(false));
 
-    function hookImages() {
-      root.querySelectorAll("img").forEach(img => {
-        if (img.dataset.rfHooked) return;
-        img.dataset.rfHooked = "1";
-        img.addEventListener("load", () => schedule(true));
-        img.addEventListener("error", () => schedule(true));
-      });
-    }
-    hookImages();
-
-    const mo = new MutationObserver(() => {
-      hookImages();
-      schedule(false);
+    // immagini
+    root.querySelectorAll("img").forEach(img => {
+      img.addEventListener("load", () => schedule(true));
+      img.addEventListener("error", () => schedule(true));
     });
+
+    // DOM changes
+    const mo = new MutationObserver(() => schedule(false));
     mo.observe(root, { childList: true, subtree: true, attributes: true });
 
     if (window.ResizeObserver) {
