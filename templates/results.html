@@ -644,17 +644,17 @@
   let lastH = 0;
 
   function getContentHeight() {
-    const doc = document.documentElement;
+  // misura reale: top di #rf-root → bottom dell’ultimo elemento dentro #rf-root
+  const rootRect = root.getBoundingClientRect();
+  const last = root.lastElementChild;
+  if (!last) return 0;
 
-    // ✅ misura reale: bounding box del contenuto + fallback robusti
-    const h = Math.max(
-      Math.ceil(root.getBoundingClientRect().height),
-      root.scrollHeight,
-      doc.scrollHeight
-    );
+  const lastRect = last.getBoundingClientRect();
+  const h = lastRect.bottom - rootRect.top;
 
-    return h;
-  }
+  return Math.max(1, Math.ceil(h));
+}
+
 
   function postHeight(force) {
     const now = Date.now();
