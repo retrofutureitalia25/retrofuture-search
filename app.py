@@ -308,13 +308,18 @@ def search():
     # -------------------------
     # ✅ Match base
     # -------------------------
+    
     if scope == "tutti":
-       match = {}
-    else:
+    # mostra tutto MA NASCONDE expired
         match = {
-          "vintage_class": {"$ne": "non_vintage"},
-          "status": {"$ne": "expired"}  # ✅ non mostra annunci scaduti
+         "status": {"$ne": "expired"}
     }
+    else:
+      match = {
+        "vintage_class": {"$ne": "non_vintage"},
+        "status": {"$ne": "expired"}
+    }
+
 
 
     fallback_used = False
