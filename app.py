@@ -309,9 +309,13 @@ def search():
     # ✅ Match base
     # -------------------------
     if scope == "tutti":
-        match = {}
+       match = {}
     else:
-        match = {"vintage_class": {"$ne": "non_vintage"}}
+        match = {
+          "vintage_class": {"$ne": "non_vintage"},
+          "status": {"$ne": "expired"}  # ✅ non mostra annunci scaduti
+    }
+
 
     fallback_used = False
     fuzzy_used = False
@@ -468,7 +472,12 @@ def search():
             {"description": {"$regex": q_prefix, "$options": "i"}},
         ]}
 
-        prelim_match = {"vintage_class": {"$ne": "non_vintage"}, **loose_regex}
+        prelim_match = {
+             "vintage_class": {"$ne": "non_vintage"},
+             "status": {"$ne": "expired"},  # ✅ coerente con ricerca principale
+            **loose_regex
+        }
+
 
         # riapplica filtri
         if era:
