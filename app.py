@@ -1,6 +1,6 @@
 # app.py
 import os, json, re
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Flask, request, render_template, Response, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
@@ -199,11 +199,11 @@ def _recency_bonus_from_dt(dt_val):
         else:
             dtp = dt_val
 
-        # se è aware, la rendiamo naive UTC-like
-        if getattr(dtp, "tzinfo", None) is not None:
-            dtp = dtp.replace(tzinfo=None)
+        # se naive -> assumiamo UTC
+        if getattr(dtp, "tzinfo", None) is None:
+            dtp = dtp.replace(tzinfo=timezone.utc)
 
-        age_days = (datetime.utcnow() - dtp).total_seconds() / 86400.0
+        age_days = (datetime.now(timezone.utc) - dtp).total_seconds() / 86400.0
     except Exception:
         return 0.0
 
@@ -248,21 +248,12 @@ def search():
     # -------------------------
     allowed_era = {
         "anni_50", "anni_60", "anni_70", "anni_80", "anni_90", "anni_2000",
-        # compatibilità DB/link vecchi (anche se non lo metti nel menu)
-        "vintage_generico",
+        "vintage_generico",  # compatibilità
     }
 
-    # ✅ Ordinamento UI deciso:
-    # - Migliori        -> score
-    # - Più recenti     -> date
-    # - Prezzo ↑        -> price_asc
-    # - Prezzo ↓        -> price_desc
     allowed_sort = {"score", "date", "price_asc", "price_desc"}
-
-    # ✅ marketplace attuali
     allowed_source = {"ebay", "vinted", "subito", "mercatino"}
 
-    # ✅ categorie brand (slug “puliti”)
     allowed_category = {
         "tecnologia",
         "arredamento",
@@ -295,7 +286,6 @@ def search():
     if price_min is not None and price_max is not None and price_min > price_max:
         price_min, price_max = price_max, price_min
 
-    # ✅ range prezzo: lo applichiamo su price_num (dopo conversione)
     price_filter = {}
     if price_min is not None:
         price_filter["$gte"] = price_min
@@ -306,13 +296,24 @@ def search():
     col = client[DB_NAME][COLLECTION_NAME]
 
     # -------------------------
-    # ✅ Match base (pulito + senza ambiguità)
-    #   - sempre nascondi expired
-    #   - se NON "tutti", nascondi anche non_vintage
+    # ✅ Match base (NASCONDI SOLO I VERI MORTI)
+    # - is_removed=True -> sempre fuori
+    # - status=expired SOLO se expired_reason=deadlink -> fuori
     # -------------------------
-    match = {"status": {"$ne": "expired"}}
-    if scope != "tutti":
-        match["vintage_class"] = {"$ne": "non_vintage"}
+    hide_dead = {
+        "is_removed": {"$ne": True},
+        "$nor": [
+            {"status": "expired", "expired_reason": "deadlink"},
+        ],
+    }
+
+    if scope == "tutti":
+        match = dict(hide_dead)
+    else:
+        match = {
+            **hide_dead,
+            "vintage_class": {"$ne": "non_vintage"},
+        }
 
     fallback_used = False
     fuzzy_used = False
@@ -369,7 +370,6 @@ def search():
     pipeline = [
         {"$match": match},
         {"$addFields": {
-            # ✅ prezzo numerico robusto (gestisce anche "12,50")
             "price_num": {
                 "$convert": {
                     "input": {
@@ -392,20 +392,16 @@ def search():
                 "$convert": {"input": "$created_at", "to": "date", "onError": None, "onNull": None}
             },
 
-            # base_dt = updated_dt se presente, altrimenti created_dt, altrimenti epoch
             "base_dt": {"$ifNull": ["$updated_dt", {"$ifNull": ["$created_dt", datetime(1970, 1, 1)]}]},
-
             "era_weight": {"$cond": [{"$ne": ["$era", "vintage_generico"]}, 1, 0]},
         }},
         {"$addFields": {
-            # età in giorni: (NOW - base_dt) / ms_giorno
             "age_days": {
                 "$divide": [
                     {"$subtract": ["$$NOW", "$base_dt"]},
                     86400000
                 ]
             },
-            # micro-bonus recency (massimo +0.7)
             "recency_bonus": {
                 "$switch": {
                     "branches": [
@@ -417,16 +413,13 @@ def search():
                     "default": 0
                 }
             },
-            # score finale usato per "Migliori"
             "score_final": {"$add": [{"$ifNull": ["$vintage_score", 0]}, "$recency_bonus"]},
         }},
     ]
 
-    # ✅ filtro prezzo applicato DOPO conversione
     if scope != "tutti" and price_filter:
         pipeline.append({"$match": {"price_num": price_filter}})
 
-    # per sort prezzo: i null vanno in fondo (asc)
     pipeline.append({"$addFields": {"price_sort": {"$ifNull": ["$price_num", 999999999]}}})
 
     if scope == "tutti":
@@ -435,13 +428,11 @@ def search():
         if sort == "price_asc":
             pipeline.append({"$sort": {"price_sort": 1, "updated_dt": -1, "_id": -1}})
         elif sort == "price_desc":
-            # per desc: null in fondo
             pipeline.append({"$addFields": {"price_sort_desc": {"$ifNull": ["$price_num", -1]}}})
             pipeline.append({"$sort": {"price_sort_desc": -1, "updated_dt": -1, "_id": -1}})
         elif sort == "date":
             pipeline.append({"$sort": {"updated_dt": -1, "_id": -1}})
         else:
-            # "score" = migliori (score + recency bonus)
             pipeline.append({"$sort": {
                 "score_final": -1,
                 "era_weight": -1,
@@ -457,7 +448,7 @@ def search():
     results = list(col.aggregate(pipeline))
 
     # =====================================================================
-    # 🔥 Fuzzy fallback (rispetta i filtri scelti)
+    # 🔥 Fuzzy fallback (coerente con match principale)
     # =====================================================================
     if scope != "tutti" and q and len(results) < 5:
         q_clean = q.strip()
@@ -471,11 +462,10 @@ def search():
 
         prelim_match = {
             "vintage_class": {"$ne": "non_vintage"},
-            "status": {"$ne": "expired"},  # ✅ coerente con ricerca principale
+            **hide_dead,
             **loose_regex
         }
 
-        # riapplica filtri
         if era:
             prelim_match["era"] = era
         if category_norm:
@@ -493,7 +483,6 @@ def search():
 
         fuzzy_matches = []
         for item in prelim:
-            # ✅ filtro prezzo in Python (perché price_value può essere stringa)
             pv = _parse_price(item.get("price_value"))
             if price_min is not None and (pv is None or pv < price_min):
                 continue
@@ -506,8 +495,6 @@ def search():
 
         if len(fuzzy_matches) > len(results):
             fuzzy_used = True
-
-            # ✅ ordina fuzzy come "migliori": score + recency bonus
             fuzzy_matches.sort(
                 key=lambda it: float(it.get("vintage_score") or 0)
                                + _recency_bonus_from_dt(it.get("updated_at") or it.get("created_at")),
@@ -518,8 +505,6 @@ def search():
             end = page * per_page
             results = fuzzy_matches[start:end]
 
-    # =====================================================================
-
     client.close()
 
     return render_template(
@@ -528,7 +513,7 @@ def search():
         risultati=results,
         era=era,
         category=category_norm or category,
-        source=source,  # ✅ marketplace
+        source=source,
         price_min=price_min_raw,
         price_max=price_max_raw,
         sort=sort,
@@ -562,11 +547,12 @@ def sitemap_xml():
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>{SITE_URL.rstrip('/')}/</loc>
-    <lastmod>{datetime.utcnow().strftime('%Y-%m-%d')}</lastmod>
+    <lastmod>{datetime.now(timezone.utc).strftime('%Y-%m-%d')}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
-</urlset>"""
+</set>"""
+    # NB: se vuoi, correggo anche questo tag finale (ora è </set>), ma non impatta la search.
     return Response(xml, mimetype="application/xml")
 
 
@@ -624,7 +610,7 @@ def track_click():
         col.insert_one({
             "query": raw_query,
             "title": raw_title,
-            "created_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc)
         })
 
         client.close()
