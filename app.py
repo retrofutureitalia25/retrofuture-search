@@ -306,21 +306,13 @@ def search():
     col = client[DB_NAME][COLLECTION_NAME]
 
     # -------------------------
-    # ✅ Match base
+    # ✅ Match base (pulito + senza ambiguità)
+    #   - sempre nascondi expired
+    #   - se NON "tutti", nascondi anche non_vintage
     # -------------------------
-    
-    if scope == "tutti":
-    # mostra tutto MA NASCONDE expired
-        match = {
-         "status": {"$ne": "expired"}
-    }
-    else:
-      match = {
-        "vintage_class": {"$ne": "non_vintage"},
-        "status": {"$ne": "expired"}
-    }
-
-
+    match = {"status": {"$ne": "expired"}}
+    if scope != "tutti":
+        match["vintage_class"] = {"$ne": "non_vintage"}
 
     fallback_used = False
     fuzzy_used = False
@@ -478,11 +470,10 @@ def search():
         ]}
 
         prelim_match = {
-             "vintage_class": {"$ne": "non_vintage"},
-             "status": {"$ne": "expired"},  # ✅ coerente con ricerca principale
+            "vintage_class": {"$ne": "non_vintage"},
+            "status": {"$ne": "expired"},  # ✅ coerente con ricerca principale
             **loose_regex
         }
-
 
         # riapplica filtri
         if era:
