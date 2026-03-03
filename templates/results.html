@@ -25,7 +25,7 @@
       price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1, _external=True) }}">
   {% endif %}
 
-  <!-- ✅ Font (alternativa legale/semplice ai loghi) -->
+  <!-- ✅ Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -40,7 +40,7 @@
     #rf-root{ padding: 10px 10px 14px; }
     a{ text-decoration:none; color:inherit; }
 
-    /* ✅ TOPBAR (ultra compatta) */
+    /* ✅ TOPBAR */
     .topbar{
       display:flex;
       align-items:center;
@@ -212,7 +212,6 @@
       white-space:nowrap;
     }
 
-    /* ✅ Bottoni esterni: testo bianco + sfondo brand */
     .ext-pill{
       height:28px;
       width: 150px;
@@ -236,7 +235,6 @@
       outline: none;
       box-shadow: 0 0 0 3px rgba(10,170,119,.25), 0 10px 18px rgba(0,0,0,0.12);
     }
-
     .ext-text{
       font-size:14px;
       font-weight:900;
@@ -246,29 +244,10 @@
       color:#fff;
       text-shadow: 0 1px 0 rgba(0,0,0,0.10);
     }
-
-    /* ✅ Facebook */
-    .ext-facebook{
-      background:#1877F2;
-      border-color:#166fe5;
-    }
-    .ext-facebook .ext-text{
-      font-family: "Inter", system-ui, sans-serif;
-      letter-spacing:-0.2px;
-    }
-
-    /* ✅ Wallapop */
-    .ext-wallapop{
-      background:#00C4A7;
-      border-color:#00b095;
-    }
-    .ext-wallapop .ext-text{
-      font-family: "Poppins", system-ui, sans-serif;
-      letter-spacing:-0.2px;
-      text-transform: lowercase;
-    }
-
-    /* ✅ freccia: badge leggibile su qualsiasi colore */
+    .ext-facebook{ background:#1877F2; border-color:#166fe5; }
+    .ext-facebook .ext-text{ font-family: "Inter", system-ui, sans-serif; letter-spacing:-0.2px; }
+    .ext-wallapop{ background:#00C4A7; border-color:#00b095; }
+    .ext-wallapop .ext-text{ font-family: "Poppins", system-ui, sans-serif; letter-spacing:-0.2px; text-transform: lowercase; }
     .ext-arrow{
       font-size:10px;
       font-weight:900;
@@ -282,12 +261,7 @@
       margin-left: 6px;
       text-shadow: 0 1px 0 rgba(0,0,0,0.10);
     }
-
-    .ext-note{
-      font-size:11.5px;
-      color:#777;
-      white-space:nowrap;
-    }
+    .ext-note{ font-size:11.5px; color:#777; white-space:nowrap; }
 
     /* admin pills */
     .pillbar{
@@ -314,8 +288,11 @@
     body.admin .admin-only-inline{ display:inline-flex !important; }
     .admin-only-inline{ display:none; }
 
-    /* ✅ Opzione A: se è una pagina "categoria" (iframe + ?category=...), NASCONDI la select categoria */
-    body.rf-hide-category .rf-field-category{ display:none !important; }
+    /* ✅ OPZIONE A: NASCONDI SOLO LA SELECT CATEGORIA nelle pagine categoria (iframe + category fissata) */
+    html.rf-hide-category .rf-field-category,
+    body.rf-hide-category .rf-field-category{
+      display:none !important;
+    }
 
     /* grid cards */
     .grid{
@@ -433,27 +410,31 @@
     }
 
     // ==========================================================
-    // ✅ Opzione A (FRONTEND): se siamo dentro iframe + category fissata,
-    // nascondi COMPLETAMENTE la select categoria (pagina categoria WP)
+    // ✅ OPZIONE A (FRONTEND) — FIX ROBUSTO:
+    // Applica la classe DOPO che il DOM esiste.
+    // Nascondi la select categoria SOLO in iframe e SOLO se category è fissata in URL.
     // ==========================================================
-    (function(){
+    document.addEventListener("DOMContentLoaded", () => {
       try{
-        if (window.self === window.top) return; // non iframe => non nascondere
+        const isIframe = (window.self !== window.top);
+        if (!isIframe) return;
+
         const params = new URLSearchParams(window.location.search);
         const cat = (params.get("category") || "").trim();
-        if (cat) document.body.classList.add("rf-hide-category");
+
+        if (cat){
+          document.documentElement.classList.add("rf-hide-category");
+          if (document.body) document.body.classList.add("rf-hide-category");
+        }
       } catch(e){}
-    })();
+    });
 
     // ==========================================================
     // ✅ NO-IMAGE rule (SOLO mercatino / mercatinousato)
-    // - quando l'immagine non carica, NASCONDI la card (non remove)
-    // - segnala il backend con cooldown (anti spam)
-    // - opzionale: onload se l'immagine è "troppo piccola" => sospetta
     // ==========================================================
     const RF_NOIMAGE_ENDPOINT = "/report_noimage";
-    const RF_NOIMAGE_COOLDOWN_HOURS = 6; // 1 segnalazione ogni 6 ore per hash (per sessione)
-    const RF_NOIMAGE_MIN_NATURAL = 60;   // sotto 60px spesso è placeholder/errore mascherato
+    const RF_NOIMAGE_COOLDOWN_HOURS = 6;
+    const RF_NOIMAGE_MIN_NATURAL = 60;
 
     function rfNormSource(s){
       return String(s || "").trim().toLowerCase();
@@ -467,7 +448,7 @@
     function rfHideCardByHash(hash){
       const el = document.getElementById(hash);
       if (!el) return;
-      el.style.display = "none"; // ✅ invece di remove() (evita contatori/paginazione strani)
+      el.style.display = "none";
     }
 
     function rfAlreadyReported(hash){
@@ -490,7 +471,6 @@
         const map = JSON.parse(raw);
         map[hash] = Date.now();
 
-        // mantieni il JSON leggero (max 800)
         const keys = Object.keys(map);
         if (keys.length > 800){
           keys.sort((a,b)=>(map[a]||0)-(map[b]||0));
@@ -498,7 +478,6 @@
             delete map[keys[i]];
           }
         }
-
         sessionStorage.setItem(key, JSON.stringify(map));
       } catch(e){}
     }
@@ -520,7 +499,6 @@
       }).catch(()=>{});
     }
 
-    // handler chiamato dall'onerror dell'immagine
     function rfHandleImgError(imgEl){
       try{
         const hash = imgEl?.dataset?.hash || "";
@@ -535,7 +513,6 @@
       } catch(e){}
     }
 
-    // handler chiamato dall'onload (opzionale, più robusto per mercatino)
     function rfHandleImgLoad(imgEl){
       try{
         const hash = imgEl?.dataset?.hash || "";
@@ -548,7 +525,6 @@
         const w = Number(imgEl?.naturalWidth || 0);
         const h = Number(imgEl?.naturalHeight || 0);
 
-        // se la risorsa "carica" ma è minuscola, spesso non è una foto prodotto
         if (w > 0 && h > 0 && (w < RF_NOIMAGE_MIN_NATURAL || h < RF_NOIMAGE_MIN_NATURAL)){
           rfHideCardByHash(hash);
           rfReportNoImage(hash, source, srcUrl);
@@ -625,7 +601,7 @@
             </select>
           </div>
 
-          <!-- ✅ Categoria (Opzione A: verrà nascosta in iframe quando ?category=...) -->
+          <!-- ✅ Categoria (Opzione A: nascosta in iframe se category è già fissata) -->
           <div class="field field-wide rf-field-category">
             <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
               <option value="">Categoria</option>
@@ -644,7 +620,6 @@
             </select>
           </div>
 
-          <!-- ✅ Marketplace -->
           <div class="field">
             <select name="source" {% if scope=='tutti' %}disabled{% endif %}>
               <option value="">Marketplace</option>
@@ -757,10 +732,9 @@
 
   </div>
 
-  <!-- ✅ Altezza iframe: misura SOLO #rf-root (fix origin + fix "None") -->
+  <!-- ✅ Altezza iframe: misura SOLO #rf-root -->
   <script>
   (function () {
-    // Se non siamo dentro iframe, non fare nulla
     if (window.self === window.top) return;
 
     const root = document.getElementById("rf-root");
@@ -771,14 +745,11 @@
     let lastH = 0;
 
     function getContentHeight() {
-      // Misura reale: top di #rf-root → bottom dell’ultimo elemento dentro #rf-root
       const rootRect = root.getBoundingClientRect();
       const last = root.lastElementChild;
       if (!last) return 0;
-
       const lastRect = last.getBoundingClientRect();
       const h = lastRect.bottom - rootRect.top;
-
       return Math.max(1, Math.ceil(h));
     }
 
@@ -791,8 +762,6 @@
 
       lastSent = now;
       lastH = h;
-
-      // ✅ FIX: usa "*" per evitare mismatch origin (invia solo un numero)
       window.parent.postMessage({ rf_height: h }, "*");
     }
 
@@ -801,7 +770,6 @@
       rafId = requestAnimationFrame(() => postHeight(!!force));
     }
 
-    // Prime misurazioni + dopo caricamenti
     schedule(true);
     setTimeout(() => schedule(true), 120);
     setTimeout(() => schedule(true), 400);
