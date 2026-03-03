@@ -314,6 +314,9 @@
     body.admin .admin-only-inline{ display:inline-flex !important; }
     .admin-only-inline{ display:none; }
 
+    /* ✅ Opzione A: se è una pagina "categoria" (iframe + ?category=...), NASCONDI la select categoria */
+    body.rf-hide-category .rf-field-category{ display:none !important; }
+
     /* grid cards */
     .grid{
       display:grid;
@@ -428,6 +431,130 @@
         }
       });
     }
+
+    // ==========================================================
+    // ✅ Opzione A (FRONTEND): se siamo dentro iframe + category fissata,
+    // nascondi COMPLETAMENTE la select categoria (pagina categoria WP)
+    // ==========================================================
+    (function(){
+      try{
+        if (window.self === window.top) return; // non iframe => non nascondere
+        const params = new URLSearchParams(window.location.search);
+        const cat = (params.get("category") || "").trim();
+        if (cat) document.body.classList.add("rf-hide-category");
+      } catch(e){}
+    })();
+
+    // ==========================================================
+    // ✅ NO-IMAGE rule (SOLO mercatino / mercatinousato)
+    // - quando l'immagine non carica, NASCONDI la card (non remove)
+    // - segnala il backend con cooldown (anti spam)
+    // - opzionale: onload se l'immagine è "troppo piccola" => sospetta
+    // ==========================================================
+    const RF_NOIMAGE_ENDPOINT = "/report_noimage";
+    const RF_NOIMAGE_COOLDOWN_HOURS = 6; // 1 segnalazione ogni 6 ore per hash (per sessione)
+    const RF_NOIMAGE_MIN_NATURAL = 60;   // sotto 60px spesso è placeholder/errore mascherato
+
+    function rfNormSource(s){
+      return String(s || "").trim().toLowerCase();
+    }
+
+    function rfIsMercatino(src){
+      const s = rfNormSource(src);
+      return (s === "mercatino" || s === "mercatinousato");
+    }
+
+    function rfHideCardByHash(hash){
+      const el = document.getElementById(hash);
+      if (!el) return;
+      el.style.display = "none"; // ✅ invece di remove() (evita contatori/paginazione strani)
+    }
+
+    function rfAlreadyReported(hash){
+      try {
+        const key = "rf_noimage_reported_ts";
+        const raw = sessionStorage.getItem(key) || "{}";
+        const map = JSON.parse(raw);
+        const last = Number(map[hash] || 0);
+        const now = Date.now();
+        return (now - last) < (RF_NOIMAGE_COOLDOWN_HOURS * 60 * 60 * 1000);
+      } catch(e){
+        return false;
+      }
+    }
+
+    function rfMarkReported(hash){
+      try {
+        const key = "rf_noimage_reported_ts";
+        const raw = sessionStorage.getItem(key) || "{}";
+        const map = JSON.parse(raw);
+        map[hash] = Date.now();
+
+        // mantieni il JSON leggero (max 800)
+        const keys = Object.keys(map);
+        if (keys.length > 800){
+          keys.sort((a,b)=>(map[a]||0)-(map[b]||0));
+          for (let i=0; i<keys.length-800; i++){
+            delete map[keys[i]];
+          }
+        }
+
+        sessionStorage.setItem(key, JSON.stringify(map));
+      } catch(e){}
+    }
+
+    function rfReportNoImage(hash, source, imageUrl){
+      if (!hash) return;
+      if (rfAlreadyReported(hash)) return;
+      rfMarkReported(hash);
+
+      fetch(RF_NOIMAGE_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({
+          hash: hash,
+          source: rfNormSource(source),
+          image: String(imageUrl || "")
+        }),
+        keepalive: true
+      }).catch(()=>{});
+    }
+
+    // handler chiamato dall'onerror dell'immagine
+    function rfHandleImgError(imgEl){
+      try{
+        const hash = imgEl?.dataset?.hash || "";
+        const source = imgEl?.dataset?.source || "";
+        const srcUrl = imgEl?.getAttribute("src") || "";
+
+        if (!rfIsMercatino(source)) return;
+        if (srcUrl.includes("No-Image-Placeholder")) return;
+
+        rfHideCardByHash(hash);
+        rfReportNoImage(hash, source, srcUrl);
+      } catch(e){}
+    }
+
+    // handler chiamato dall'onload (opzionale, più robusto per mercatino)
+    function rfHandleImgLoad(imgEl){
+      try{
+        const hash = imgEl?.dataset?.hash || "";
+        const source = imgEl?.dataset?.source || "";
+        const srcUrl = imgEl?.getAttribute("src") || "";
+
+        if (!rfIsMercatino(source)) return;
+        if (srcUrl.includes("No-Image-Placeholder")) return;
+
+        const w = Number(imgEl?.naturalWidth || 0);
+        const h = Number(imgEl?.naturalHeight || 0);
+
+        // se la risorsa "carica" ma è minuscola, spesso non è una foto prodotto
+        if (w > 0 && h > 0 && (w < RF_NOIMAGE_MIN_NATURAL || h < RF_NOIMAGE_MIN_NATURAL)){
+          rfHideCardByHash(hash);
+          rfReportNoImage(hash, source, srcUrl);
+        }
+      } catch(e){}
+    }
   </script>
 </head>
 
@@ -498,7 +625,8 @@
             </select>
           </div>
 
-          <div class="field field-wide">
+          <!-- ✅ Categoria (Opzione A: verrà nascosta in iframe quando ?category=...) -->
+          <div class="field field-wide rf-field-category">
             <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
               <option value="">Categoria</option>
 
@@ -512,6 +640,7 @@
               <option value="cucina" {% if category=='cucina' %}selected{% endif %}>Cucina</option>
               <option value="cartoleria" {% if category=='cartoleria' %}selected{% endif %}>Cartoleria</option>
               <option value="collezionismo" {% if category=='collezionismo' %}selected{% endif %}>Collezionismo</option>
+              <option value="vario" {% if category=='vario' %}selected{% endif %}>Altro</option>
             </select>
           </div>
 
@@ -584,7 +713,11 @@
           <img class="thumb"
                src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}"
                alt="{{ r.title or r.titolo }}"
-               loading="lazy" />
+               loading="lazy"
+               data-hash="{{ r.hash }}"
+               data-source="{{ (r.source or '')|lower }}"
+               onerror="rfHandleImgError(this)"
+               onload="rfHandleImgLoad(this)" />
 
           <div class="title">{{ r.title or r.titolo or 'Titolo non disponibile' }}</div>
 
