@@ -1,6 +1,6 @@
 # app.py
 import os, json, re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask import Flask, request, render_template, Response, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
@@ -18,6 +18,25 @@ app = Flask(__name__)
 
 DB_NAME = "database_vintage"
 COLLECTION_NAME = "annunci"
+
+# ============================================================
+# CONFIG UI / LOGICA
+# - Mercatinousato: se needs_check=True -> NASCONDI (soft-hide)
+# - Expired: NASCONDI solo se expired_reason=deadlink / noimage (prove)
+# ============================================================
+SOFT_HIDE_SOURCES = {"mercatinousato"}  # chiave normalizzata nel DB
+
+# ============================================================
+# CONFIG NOIMAGE (solo Mercatinousato)
+# ============================================================
+NOIMAGE_ENABLED = os.getenv("NOIMAGE_ENABLED", "1") != "0"
+NOIMAGE_SOURCES = {"mercatinousato"}  # per ora SOLO mercatino/mercatinousato
+NOIMAGE_HITS_REQUIRED = int(os.getenv("NOIMAGE_HITS_REQUIRED", "2"))
+NOIMAGE_COOLDOWN_MINUTES = int(os.getenv("NOIMAGE_COOLDOWN_MINUTES", "60"))
+NOIMAGE_MAX_BODY = 4096
+
+# semplice rate limit in-memory (ok per singola istanza)
+_NOIMAGE_RL = {}  # key=(ip,hash) -> last_dt_utc
 
 
 # ============================================================
@@ -61,7 +80,7 @@ def _generate_ngrams(tokens, max_len=4):
     ngrams = set()
     n = len(tokens)
     for i in range(n):
-        for j in range(i + 1, min(n, i + max_len) + 1):
+        for j in range(i + 1, min(i + max_len, n) + 1):
             ngrams.add(" ".join(tokens[i:j]))
     return ngrams
 
@@ -167,29 +186,90 @@ def fuzzy_match(query, text, threshold=65):
 
 
 # ============================================================
-# 🔹 Parse sicuro prezzi
+# 🔹 Parse sicuro prezzi (robusto per 99.999 / 99.999,00 ecc.)
 # ============================================================
+_THOUSANDS_DOT_RE = re.compile(r"^\d{1,3}(\.\d{3})+(\,\d+)?$")
+_THOUSANDS_COMMA_RE = re.compile(r"^\d{1,3}(,\d{3})+(\.\d+)?$")
+
 def _parse_price(x):
+    """
+    Converte stringhe/num in float.
+    Supporta:
+      - 99.999      -> 99999
+      - 99.999,00   -> 99999.00
+      - 120,50      -> 120.50
+      - 120.50      -> 120.50
+      - 250         -> 250.0
+    """
     if x is None:
         return None
+
+    # già numero
+    if isinstance(x, (int, float)) and not isinstance(x, bool):
+        try:
+            return float(x)
+        except Exception:
+            return None
+
     s = str(x).strip()
     if not s:
         return None
-    s = s.replace(",", ".")
+
+    # tieni solo cifre e separatori
+    s = re.sub(r"[^\d\.,]", "", s)
+    if not s:
+        return None
+
+    # caso EU con punti migliaia (Subito): 99.999 o 99.999,00
+    if _THOUSANDS_DOT_RE.match(s):
+        s = s.replace(".", "")
+        s = s.replace(",", ".")
+    # caso US raro: 1,234.56
+    elif _THOUSANDS_COMMA_RE.match(s):
+        s = s.replace(",", "")
+    else:
+        # caso semplice: 120,50 -> 120.50
+        if "," in s and "." not in s:
+            s = s.replace(",", ".")
+        # se ci sono entrambi, assume "." migliaia e "," decimali
+        elif "," in s and "." in s:
+            s = s.replace(".", "").replace(",", ".")
+
     try:
         return float(s)
     except Exception:
         return None
 
 
+def _format_price_it(n):
+    """
+    Mostra:
+      - 99999   -> 99.999 EUR
+      - 60      -> 60.00 EUR
+      - 120.5   -> 120.50 EUR
+    """
+    if n is None:
+        return ""
+
+    try:
+        n = float(n)
+    except Exception:
+        return ""
+
+    # sempre 2 decimali come il tuo UI attuale
+    s = f"{n:.2f}"
+
+    # separatore decimale "."
+    int_part, dec_part = s.split(".")
+    # migliaia con "."
+    int_part = f"{int(int_part):,}".replace(",", ".")
+    return f"{int_part}.{dec_part} EUR"
+
+
 # ============================================================
 # 🔹 Recency bonus (Python) — per fuzzy fallback
 # ============================================================
 def _recency_bonus_from_dt(dt_val):
-    """
-    Bonus leggero: massimo +0.7 (entro 1 giorno), poi decresce.
-    dt_val può essere stringa ISO o datetime.
-    """
     if not dt_val:
         return 0.0
 
@@ -199,7 +279,6 @@ def _recency_bonus_from_dt(dt_val):
         else:
             dtp = dt_val
 
-        # se naive -> assumiamo UTC
         if getattr(dtp, "tzinfo", None) is None:
             dtp = dtp.replace(tzinfo=timezone.utc)
 
@@ -218,9 +297,113 @@ def _recency_bonus_from_dt(dt_val):
     return 0.0
 
 
+def _now_utc():
+    return datetime.now(timezone.utc).replace(microsecond=0)
+
+
+def _client_ip():
+    xff = request.headers.get("X-Forwarded-For") or ""
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+###############################################################################
+# REPORT NOIMAGE (client-side proof) — SOLO mercatinousato
+###############################################################################
+@app.route("/report_noimage", methods=["POST"])
+def report_noimage():
+    if not NOIMAGE_ENABLED:
+        return jsonify({"status": "disabled"}), 200
+
+    if request.content_length and request.content_length > NOIMAGE_MAX_BODY:
+        return jsonify({"status": "error", "msg": "payload too large"}), 413
+
+    data = request.get_json(silent=True) or {}
+    item_hash = (data.get("hash") or "").strip()
+    src = _norm_text(data.get("source") or "")
+    img = (data.get("image") or "").strip()
+    page_url = (data.get("page_url") or "").strip()
+
+    if not item_hash:
+        return jsonify({"status": "error", "msg": "missing hash"}), 400
+
+    if src == "mercatino":
+        src = "mercatinousato"
+
+    if src and src not in NOIMAGE_SOURCES:
+        return jsonify({"status": "ignored", "msg": "source not supported"}), 200
+
+    ip = _client_ip()
+    key = (ip, item_hash)
+    now = _now_utc()
+
+    last = _NOIMAGE_RL.get(key)
+    if last and (now - last) < timedelta(minutes=NOIMAGE_COOLDOWN_MINUTES):
+        return jsonify({"status": "throttled"}), 200
+    _NOIMAGE_RL[key] = now
+
+    client = MongoClient(MONGO_URI)
+    col = client[DB_NAME][COLLECTION_NAME]
+    try:
+        doc = col.find_one({"hash": item_hash}, {"_id": 1, "source": 1, "status": 1, "expired_reason": 1})
+        if not doc:
+            return jsonify({"status": "error", "msg": "not found"}), 404
+
+        doc_src = _norm_text(doc.get("source") or "")
+        if doc_src == "mercatino":
+            doc_src = "mercatinousato"
+
+        if doc_src not in NOIMAGE_SOURCES:
+            return jsonify({"status": "ignored", "msg": "doc source not supported"}), 200
+
+        if doc.get("status") == "expired" and doc.get("expired_reason") == "deadlink":
+            return jsonify({"status": "ok", "msg": "already deadlink-expired"}), 200
+
+        update = {
+            "$inc": {"noimage_hits": 1},
+            "$set": {
+                "noimage_last_at": now.isoformat(),
+                "noimage_last_ip": ip,
+            },
+        }
+
+        sample = {}
+        if img:
+            sample["noimage_last_image"] = img[:500]
+        if page_url:
+            sample["noimage_last_page"] = page_url[:500]
+        if sample:
+            update["$set"].update(sample)
+
+        res = col.update_one({"_id": doc["_id"]}, update)
+        if res.matched_count == 0:
+            return jsonify({"status": "error", "msg": "update failed"}), 500
+
+        doc2 = col.find_one({"_id": doc["_id"]}, {"noimage_hits": 1}) or {}
+        hits = int(doc2.get("noimage_hits") or 0)
+
+        expired_now = False
+        if hits >= NOIMAGE_HITS_REQUIRED:
+            col.update_one(
+                {"_id": doc["_id"], "status": {"$ne": "expired"}},
+                {"$set": {
+                    "status": "expired",
+                    "expired_at": now.isoformat(),
+                    "expired_reason": "noimage",
+                }}
+            )
+            expired_now = True
+
+        return jsonify({"status": "ok", "hits": hits, "expired": expired_now}), 200
+
+    finally:
+        client.close()
 
 
 ###############################################################################
@@ -233,7 +416,7 @@ def search():
     # ✅ Filtri scelti (barra minimal)
     era = (request.args.get("era") or "").strip()
     category = (request.args.get("category") or "").strip()
-    source = (request.args.get("source") or "").strip().lower()  # marketplace
+    source = (request.args.get("source") or "").strip().lower()
 
     sort = (request.args.get("sort") or "score").strip()
     scope = (request.args.get("scope") or "").strip().lower()
@@ -244,16 +427,14 @@ def search():
     per_page = 50
 
     # -------------------------
-    # ✅ WHITELIST (anti valori strani)
+    # ✅ WHITELIST
     # -------------------------
     allowed_era = {
         "anni_50", "anni_60", "anni_70", "anni_80", "anni_90", "anni_2000",
-        "vintage_generico",  # compatibilità
+        "vintage_generico",
     }
-
     allowed_sort = {"score", "date", "price_asc", "price_desc"}
-    allowed_source = {"ebay", "vinted", "subito", "mercatino"}
-
+    allowed_source = {"ebay", "vinted", "subito", "mercatinousato", "mercatino"}
     allowed_category = {
         "tecnologia",
         "arredamento",
@@ -265,6 +446,7 @@ def search():
         "cucina",
         "cartoleria",
         "collezionismo",
+        "vario",
     }
 
     if era and era not in allowed_era:
@@ -278,8 +460,11 @@ def search():
     if category_norm and category_norm not in allowed_category:
         category_norm = ""
 
+    if source == "mercatino":
+        source = "mercatinousato"
+
     # -------------------------
-    # ✅ Parse prezzi (safe)
+    # ✅ Parse prezzi (Python)
     # -------------------------
     price_min = _parse_price(price_min_raw)
     price_max = _parse_price(price_max_raw)
@@ -296,22 +481,28 @@ def search():
     col = client[DB_NAME][COLLECTION_NAME]
 
     # -------------------------
-    # ✅ Match base (NASCONDI SOLO I VERI MORTI)
-    # - is_removed=True -> sempre fuori
-    # - status=expired SOLO se expired_reason=deadlink -> fuori
+    # ✅ Match base
     # -------------------------
     hide_dead = {
         "is_removed": {"$ne": True},
         "$nor": [
             {"status": "expired", "expired_reason": "deadlink"},
+            {"status": "expired", "expired_reason": "noimage"},
         ],
     }
 
+    soft_hide = {
+        "$nor": [
+            {"source": {"$in": list(SOFT_HIDE_SOURCES)}, "needs_check": True},
+        ]
+    }
+
     if scope == "tutti":
-        match = dict(hide_dead)
+        match = {**hide_dead, **soft_hide}
     else:
         match = {
             **hide_dead,
+            **soft_hide,
             "vintage_class": {"$ne": "non_vintage"},
         }
 
@@ -366,35 +557,110 @@ def search():
         if source:
             match["source"] = source
 
-    # ------------ Pipeline (conversioni safe + recency bonus) ------------
+    # ------------ Pipeline ------------
     pipeline = [
         {"$match": match},
+
+        # ✅ price_value può essere: number OR string con migliaia (99.999) / decimali (120,50)
+        {"$addFields": {
+            "price_str_raw": {
+                "$convert": {
+                    "input": {"$ifNull": ["$price_value", ""]},
+                    "to": "string",
+                    "onError": "",
+                    "onNull": ""
+                }
+            }
+        }},
+
+        # ✅ Estrai solo 0-9 . , (SEMPRE stringa, evita crash su $replaceAll)
+        {"$addFields": {
+            "price_str": {
+                "$ifNull": [
+                    {"$getField": {"field": "match", "input": {
+                        "$regexFind": {
+                            "input": "$price_str_raw",
+                            "regex": r"[0-9\.,]+"
+                        }
+                    }}},
+                    ""
+                ]
+            }
+        }},
+
+        # normalizzazione EU:
+        # - se contiene sia "." che "," => "." migliaia, "," decimali
+        # - se contiene solo "." e matcha pattern migliaia (xx.xxx o x.xxx.xxx) => rimuovi "."
+        # - se contiene solo "," => "," decimali => replace con "."
+        {"$addFields": {
+            "price_norm": {
+                "$let": {
+                    # ✅ cintura di sicurezza: $$s sempre stringa
+                    "vars": {"s": {"$toString": {"$ifNull": ["$price_str", ""]}}},
+                    "in": {
+                        "$switch": {
+                            "branches": [
+                                {
+                                    "case": {"$and": [
+                                        {"$ne": [{"$indexOfBytes": ["$$s", "."]}, -1]},
+                                        {"$ne": [{"$indexOfBytes": ["$$s", ","]}, -1]},
+                                    ]},
+                                    "then": {
+                                        "$replaceAll": {
+                                            "input": {
+                                                "$replaceAll": {"input": "$$s", "find": ".", "replacement": ""}
+                                            },
+                                            "find": ",",
+                                            "replacement": "."
+                                        }
+                                    }
+                                },
+                                {
+                                    "case": {
+                                        "$and": [
+                                            {"$ne": [{"$indexOfBytes": ["$$s", "."]}, -1]},
+                                            {"$eq": [{"$indexOfBytes": ["$$s", ","]}, -1]},
+                                            {"$regexMatch": {"input": "$$s", "regex": r"^\d{1,3}(\.\d{3})+$"}}
+                                        ]
+                                    },
+                                    "then": {"$replaceAll": {"input": "$$s", "find": ".", "replacement": ""}}
+                                },
+                                {
+                                    "case": {
+                                        "$and": [
+                                            {"$eq": [{"$indexOfBytes": ["$$s", "."]}, -1]},
+                                            {"$ne": [{"$indexOfBytes": ["$$s", ","]}, -1]},
+                                        ]
+                                    },
+                                    "then": {"$replaceAll": {"input": "$$s", "find": ",", "replacement": "."}}
+                                },
+                            ],
+                            "default": "$$s"
+                        }
+                    }
+                }
+            }
+        }},
+
         {"$addFields": {
             "price_num": {
                 "$convert": {
-                    "input": {
-                        "$replaceAll": {
-                            "input": {"$ifNull": ["$price_value", ""]},
-                            "find": ",",
-                            "replacement": "."
-                        }
-                    },
+                    "input": "$price_norm",
                     "to": "double",
                     "onError": None,
                     "onNull": None
                 }
             },
-
             "updated_dt": {
                 "$convert": {"input": "$updated_at", "to": "date", "onError": None, "onNull": None}
             },
             "created_dt": {
                 "$convert": {"input": "$created_at", "to": "date", "onError": None, "onNull": None}
             },
-
             "base_dt": {"$ifNull": ["$updated_dt", {"$ifNull": ["$created_dt", datetime(1970, 1, 1)]}]},
             "era_weight": {"$cond": [{"$ne": ["$era", "vintage_generico"]}, 1, 0]},
         }},
+
         {"$addFields": {
             "age_days": {
                 "$divide": [
@@ -447,8 +713,15 @@ def search():
 
     results = list(col.aggregate(pipeline))
 
+    # ✅ Ricostruisci SEMPRE un display coerente dal numero (risolve subito casi tipo 99.999)
+    for it in results:
+        pn = it.get("price_num")
+        if pn is None:
+            pn = _parse_price(it.get("price_value"))
+        it["price_display"] = _format_price_it(pn) if pn is not None else (it.get("price_display") or "")
+
     # =====================================================================
-    # 🔥 Fuzzy fallback (coerente con match principale)
+    # 🔥 Fuzzy fallback
     # =====================================================================
     if scope != "tutti" and q and len(results) < 5:
         q_clean = q.strip()
@@ -463,6 +736,7 @@ def search():
         prelim_match = {
             "vintage_class": {"$ne": "non_vintage"},
             **hide_dead,
+            **soft_hide,
             **loose_regex
         }
 
@@ -491,6 +765,8 @@ def search():
 
             text = (item.get("title", "") + " " + item.get("description", ""))
             if fuzzy_match(q, text):
+                # aggiorna display anche qui
+                item["price_display"] = _format_price_it(pv) if pv is not None else (item.get("price_display") or "")
                 fuzzy_matches.append(item)
 
         if len(fuzzy_matches) > len(results):
@@ -551,8 +827,7 @@ def sitemap_xml():
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
-</set>"""
-    # NB: se vuoi, correggo anche questo tag finale (ora è </set>), ma non impatta la search.
+</urlset>"""
     return Response(xml, mimetype="application/xml")
 
 
