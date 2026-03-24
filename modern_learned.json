@@ -1,0 +1,391 @@
+{
+    "phrases": [
+        "13t",
+        "256gb",
+        "elephone p8 mini nero cellulare smartphone",
+        "elephone p8 mini blue cellulare smartphone",
+        "ulefone armor 24 rugged smartphone",
+        "flir one pro - termocamera per smartphone android",
+        "ventilatore per stufa con 5 pale ventilatore per camino, termoventilatore stove fan",
+        "lenovo",
+        "mini homepod apple 2021",
+        "monitor apple 2012",
+        "cuffie apple",
+        "apple tv",
+        "notebook apple macbook a1181 no hard disk",
+        "cuffiette airpods pro 4 (no apple)",
+        "auricolari apple air pods",
+        "penna apple pencil seconda generazione",
+        "cinturino apple watch 44 mm rosa",
+        "45mm",
+        "profumo apple brandy by kilia on the rocks",
+        "42mm",
+        "ripetitore apple",
+        "apple pen a1603 1 generazione",
+        "mouse apple scatola",
+        "apple watch se gen 2 40 mm nero",
+        "apple pensil 1",
+        "apple tv 4 generazione+acc l",
+        "monitor apple led cinema display 24 pollici",
+        "lettore cd apple",
+        "tastiera apple + mouse vintage",
+        "penna pencil apple",
+        "home pod mini apple",
+        "cuffie apple air pods 1",
+        "apple ipod rosa",
+        "magic mouse apple",
+        "tablet apple",
+        "smartphone apple xr 64 gb",
+        "monitor apple cinema hd dislay 27 poll",
+        "penna pencil per apple + scatola",
+        "ipod shuffle 2gb apple a1373",
+        "38mm",
+        "mouse apple a1296",
+        "computer apple imac g4 bianco da riv + cavo l",
+        "mouse apple mighty magic mouse senza usb-c nuovo",
+        "3.0 multijet",
+        "cappotta capote per bmw z4 e85 cabrio beige chiaro",
+        "capote bmw z4 e85 e86 cabrio 2.0i,2.2i,2.5i,2.5si,",
+        "ripetizioni di matematica,fisica,meccanica,chimica",
+        "dethleffs dethleffs globetrail 600 ds advantage"
+    ],
+    "entries": [
+        {
+            "title": "SmartPhone XIAOMI 13T 5G 8+4 GB MEMORIA 256GB",
+            "detected": [
+                "13t",
+                "256gb"
+            ],
+            "when": "2025-11-06T10:54:41.457980+00:00"
+        },
+        {
+            "title": "Elephone P8 mini nero cellulare smartphone",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-06T10:59:58.986036+00:00"
+        },
+        {
+            "title": "Elephone P8 mini blue cellulare smartphone",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-06T11:00:01.074318+00:00"
+        },
+        {
+            "title": "Ulefone Armor 24 Rugged Smartphone",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-06T11:00:06.375082+00:00"
+        },
+        {
+            "title": "FLIR ONE Pro - Termocamera per smartphone Android",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-06T11:00:08.240175+00:00"
+        },
+        {
+            "title": "Ventilatore per Stufa con 5 Pale Ventilatore per Camino, Termoventilatore Stove Fan",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-06T17:04:04.051981+00:00"
+        },
+        {
+            "title": "Lenovo",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T09:07:21.056909+00:00"
+        },
+        {
+            "title": "Mini homepod apple 2021",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:54:10.181995+00:00"
+        },
+        {
+            "title": "Monitor apple 2012",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:54:15.591504+00:00"
+        },
+        {
+            "title": "Cuffie apple",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:54:22.980636+00:00"
+        },
+        {
+            "title": "Apple tv",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:54:27.879918+00:00"
+        },
+        {
+            "title": "Notebook apple macbook a1181 no hard disk",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:54:34.057548+00:00"
+        },
+        {
+            "title": "Cuffiette airpods pro 4 (no apple)",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:54:36.890869+00:00"
+        },
+        {
+            "title": "Auricolari apple air pods",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:54:40.270508+00:00"
+        },
+        {
+            "title": "Penna apple pencil seconda generazione",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:54:53.906913+00:00"
+        },
+        {
+            "title": "Cinturino apple watch 44 mm rosa",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:55:05.002768+00:00"
+        },
+        {
+            "title": "Cinturino apple watch cassa 45mm",
+            "detected": [
+                "45mm"
+            ],
+            "when": "2025-11-11T20:55:06.017922+00:00"
+        },
+        {
+            "title": "Profumo apple brandy by kilia on the rocks",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:55:12.194018+00:00"
+        },
+        {
+            "title": "Braccialetto apple band per il 42mm apple watch",
+            "detected": [
+                "42mm"
+            ],
+            "when": "2025-11-11T20:55:30.069719+00:00"
+        },
+        {
+            "title": "Ripetitore apple",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:55:30.602276+00:00"
+        },
+        {
+            "title": "Apple pen a1603 1 generazione",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:55:35.761881+00:00"
+        },
+        {
+            "title": "Apple pen a1603 1 generazione",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:55:39.609074+00:00"
+        },
+        {
+            "title": "Mouse apple scatola",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:55:45.604387+00:00"
+        },
+        {
+            "title": "Apple watch se gen 2 40 mm nero",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:55:49.377648+00:00"
+        },
+        {
+            "title": "Apple pensil 1",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:55:56.510139+00:00"
+        },
+        {
+            "title": "Apple tv 4 generazione+acc l",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:56:25.631492+00:00"
+        },
+        {
+            "title": "Monitor apple led cinema display 24 pollici",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:56:29.886240+00:00"
+        },
+        {
+            "title": "Lettore cd apple",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:56:34.046055+00:00"
+        },
+        {
+            "title": "Tastiera apple + mouse vintage",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:56:39.150032+00:00"
+        },
+        {
+            "title": "Penna pencil apple",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:56:43.887346+00:00"
+        },
+        {
+            "title": "Home pod mini apple",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:56:47.595423+00:00"
+        },
+        {
+            "title": "Cuffie apple air pods 1",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:56:52.306829+00:00"
+        },
+        {
+            "title": "Apple ipod rosa",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:56:58.979462+00:00"
+        },
+        {
+            "title": "Cuffie apple",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:02.019593+00:00"
+        },
+        {
+            "title": "Magic mouse apple",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:11.662398+00:00"
+        },
+        {
+            "title": "Tablet apple",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:15.506432+00:00"
+        },
+        {
+            "title": "Smartphone apple xr 64 gb",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:22.181831+00:00"
+        },
+        {
+            "title": "Monitor apple cinema hd dislay 27 poll",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:28.426777+00:00"
+        },
+        {
+            "title": "Penna pencil per apple + scatola",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:32.459720+00:00"
+        },
+        {
+            "title": "Ipod shuffle 2gb apple a1373",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:35.766412+00:00"
+        },
+        {
+            "title": "Mouse apple a1296",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:48.700202+00:00"
+        },
+        {
+            "title": "Computer apple imac g4 bianco da riv + cavo l",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:57:54.792419+00:00"
+        },
+        {
+            "title": "Mouse apple mighty magic mouse senza usb-c nuovo",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-11T20:58:00.382401+00:00"
+        },
+        {
+            "title": "Semintegrale elnagh fiat 3.0 multijet mod, 2010",
+            "detected": [
+                "3.0 multijet"
+            ],
+            "when": "2025-11-19T10:24:06.062015+00:00"
+        },
+        {
+            "title": "Cappotta capote per Bmw Z4 E85 cabrio beige chiaro",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-19T10:24:14.554230+00:00"
+        },
+        {
+            "title": "Capote Bmw Z4 E85 E86 cabrio 2.0i,2.2i,2.5i,2.5si,",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-19T10:24:18.879532+00:00"
+        },
+        {
+            "title": "Ripetizioni di Matematica,Fisica,Meccanica,Chimica",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-19T10:49:37.547610+00:00"
+        },
+        {
+            "title": "DETHLEFFS DETHLEFFS GLOBETRAIL 600 DS ADVANTAGE",
+            "detected": [
+                "fallback_full_title"
+            ],
+            "when": "2025-11-19T15:45:46.808087+00:00"
+        }
+    ]
+}
