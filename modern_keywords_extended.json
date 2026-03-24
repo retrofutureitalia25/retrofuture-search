@@ -1,0 +1,346 @@
+{
+  "modern_brands": [
+    "xiaomi", "redmi", "realme", "oppo", "vivo", "huawei", "honor",
+    "google pixel", "pixel 2", "pixel 2 xl", "pixel 3", "pixel 3 xl",
+    "pixel 4", "pixel 4a", "pixel 5", "pixel 6", "pixel 6a", "pixel 7",
+    "pixel 7a", "pixel 8", "pixel 8 pro",
+
+    "iphone", "iphone 5", "iphone 6", "iphone 6s", "iphone 7",
+    "iphone 8", "iphone se", "iphone x", "iphone xr", "iphone xs",
+    "iphone 11", "iphone 11 pro", "iphone 12", "iphone 12 pro",
+    "iphone 13", "iphone 13 pro", "iphone 14", "iphone 14 pro",
+    "iphone 15", "iphone 15 pro",
+
+    "samsung galaxy", "galaxy s6", "galaxy s7", "galaxy s8",
+    "galaxy s9", "galaxy s10", "galaxy s20", "galaxy s21", "galaxy s22",
+    "galaxy s23", "galaxy s24",
+
+    "galaxy note", "note 8", "note 9", "note 10", "note 20",
+
+    "oneplus", "oneplus 3", "oneplus 5", "oneplus 6", "oneplus 7",
+    "oneplus 8", "oneplus 9", "oneplus 10", "oneplus 11",
+
+    "oppo find", "oppo reno", "vivo x", "vivo y", "vivo v",
+
+    "motorola g", "motorola edge", "moto g30", "moto g50", "moto g100",
+
+    "lenovo", "thinkpad", "yoga", "ideapad",
+     "omen", "pavilion", "spectre",
+     "xps", "alienware", "latitude",
+    "rog", "vivobook", "zenbook",
+    "acer", "predator", "swift", "aspire",
+    "msi", "raider", "stealth",
+
+    "macbook", "macbook air", "macbook pro", "imac",
+    "ipad air", "ipad pro", "ipad mini", "apple watch",
+
+    "sony wh", "sony xm3", "sony xm4", "sony xm5",
+    "bose", "soundlink", "quietcomfort", "qc35", "qc45",
+    "jbl", "charge 4", "charge 5", "flip 5", "flip 6",
+    "anker", "soundcore",
+
+    "dyson", "dyson v7", "dyson v8", "dyson v10", "dyson v11",
+    "dyson v12", "dyson v15", "dyson gen5detect",
+
+    "tesla", "model 3", "model y", "model s", "model x",
+
+    "dji", "mavic", "mavic mini", "mavic pro", "mavic air",
+    "osmo", "ronin",
+
+    "gopro", "gopro hero 5", "hero 6", "hero 7", "hero 8",
+    "hero 9", "hero 10", "hero 11", "hero 12"
+  ],
+  "modern_devices": [
+    "smartphone", "cellulare moderno", "telefono 4g", "telefono 5g",
+    "dual sim", "android", "ios", "telefono nuovo", "telefono recente",
+    "tablet", "tablet android", "tablet 4g", "tablet 5g",
+    "ipad 2017", "ipad 2018", "ipad 2019", "ipad 2020", "ipad 2021",
+    "ipad 2022", "ipad 2023", "ipad 2024",
+
+    "smartwatch", "fitness tracker", "orologio intelligente",
+    "band 5", "band 6", "band 7", "band 8",
+
+    "auricolari bluetooth", "cuffie bluetooth",
+    "airpods", "airpods pro", "airpods 2", "airpods 3",
+    "galaxy buds", "buds 2", "buds 3", "buds pro",
+
+    "speaker bluetooth", "soundbar moderna", "subwoofer moderno",
+    "home theater moderno",
+
+    "pc portatile moderno",
+    "ultrabook", "notebook 2020", "notebook 2021",
+    "notebook 2022", "notebook 2023", "notebook 2024",
+
+    "scheda video moderna",
+    "rtx", "rtx 2060", "rtx 2070", "rtx 2080",
+    "rtx 3060", "rtx 3070", "rtx 3080",
+    "rtx 4060", "rtx 4070", "rtx 4080", "rtx 4090",
+
+    "ssd 512gb", "ssd 1tb", "ssd 2tb",
+    "hdd 1tb moderno", "nvme", "nvme m2",
+
+    "router wifi 5", "router wifi 6", "router wifi 6e",
+    "mesh wifi", "access point moderno",
+
+    "tv 4k", "tv 8k", "tv oled", "tv qled", "tv nanocell",
+    "smart tv", "monitor 144hz", "monitor 240hz",
+
+    "console moderna",
+    "ps3", "ps4", "ps4 pro",
+    "ps5", "playstation 5",
+    "xbox 360", "xbox one", "xbox series s", "xbox series x",
+    "nintendo switch", "switch oled", "switch lite",
+    "wii u",
+
+    "controller ps4", "controller ps5",
+    "dualshock 4", "dualshock 5", "dual sense",
+
+    "joycon", "joy-con", "pro controller",
+
+    "videogioco moderno", "videogame moderno",
+    "gioco ps4", "gioco ps5",
+    "gioco xbox one", "gioco xbox series",
+    "gioco switch",
+
+    "drone moderno", "drone professionale", "drone 4k",
+    "stabilizzatore gimbal", "gimbal smartphone",
+    "action cam moderna", "cam 4k",
+
+    "smart lamp", "lampadina smart", "domotica",
+    "alexa", "google home", "homepod mini",
+
+    "robot aspirapolvere", "roomba", "dreame", "tineco",
+    "lavapavimenti moderno",
+
+    "frigorifero moderno", "lavatrice moderna",
+    "asciugatrice moderna", "lavastoviglie moderna",
+    "microonde moderno", "forno ventilato moderno",
+
+    "purificatore aria", "deumidificatore moderno",
+    "climatizzatore inverter", "pompa di calore",
+    "condizionatore moderno",
+
+    "videocamera 4k", "mirrorless", "sony a6000", "sony a6400",
+    "canon eos m50", "canon r50", "canon r6", "nikon z5",
+    "fuji xt30", "fuji xt3", "fuji xt4",
+
+    "caricatore rapido", "powerbank moderno", "cavo usb c",
+    "caricatore usb c", "dock usb c", "hub usb c",
+
+    "smart keyboard", "magic keyboard", "magic trackpad",
+    "magic mouse", "mouse wireless moderno",
+
+    "stampante moderna", "stampante wifi", "multifunzione moderna",
+    "scanner moderno"
+  ],
+  "brands_modern": [
+    "iphone", "ipad", "imac", "macbook", "apple watch",
+    "airpods", "beats", "homepod",
+
+   "galaxy", "galaxy s20", "galaxy s21", "galaxy s22",
+    "galaxy s23", "galaxy s24", "galaxy s10", "galaxy note",
+    "galaxy watch", "galaxy a51", "galaxy a52", "galaxy a53",
+
+    "xiaomi", "redmi", "poco x3", "poco x4", "poco x5",
+    "mi band 6", "mi band 7", "mi band 8",
+
+    "huawei", "honor", "matebook", "mate 40", "mate 50",
+    "p30 pro", "p40 pro", "nova 9", "nova 10",
+
+    "oppo", "realme", "oneplus", "oneplus 9", "oneplus 10", "oneplus 11",
+
+    "lenovo", "acer", "msi",
+    "surface", "surface pro 6", "surface pro 7", "surface pro 8",
+
+    "sony a7", "sony a7iii", "sony a7iv", "sony zv1",
+    "panasonic lumix", "lumix g7", "lumix gh5",
+    "canon eos", "nikon z", "fujifilm xt", "fuji x",
+
+     "marshall modern", 
+
+    "nvidia", "geforce", "rtx", "gtx 1660", "rtx 3060",
+    "rtx 3070", "rtx 3080", "rtx 4070", "rtx 4080",
+
+    "amd ryzen", "ryzen 5", "ryzen 7", "ryzen 9",
+    "radeon", "rx 580", "rx 6600", "rx 6700", "rx 6800",
+
+     "ps3", "ps4", "ps5",
+    "xbox one", "xbox series s", "xbox series x",
+    "nintendo switch", "switch oled",
+
+    "dyson", "roomba", "tineco", "dreame",
+    "lavazza moderna", "de longhi moderna"
+  ],
+
+  "modern_terms": [
+    "ricondizionato", "rigenerato", "like new", "sealed",
+    "4k", "8k", "full hd", "hdr", "dolby atmos",
+    "wifi 5", "wifi 6", "wifi 6e", "wifi ax",
+
+    "otturatore elettronico", "autofocus moderno",
+    "touchscreen", "display retina", "display oled",
+    "display lcd moderno", "refresh 120hz", "144hz", "240hz",
+
+    "usb c", "usb-c", "thunderbolt", "thunderbolt 3",
+    "hdmi 2.1", "hdmi 2.0", "dp 1.4", "displayport",
+
+    "nvme", "pcie 4.0", "pcie 5.0",
+    
+
+    "ai camera", "smart ai", "ai enhanced",
+    "machine learning processor",
+    "neural engine", "bionic chip"
+  ],
+
+  "services": [
+    "riparazione", "aggiusto telefono", "riparazioni smartphone",
+    "installazione", "configurazione pc",
+    "assistenza tecnica", "tecnico informatico",
+    "manutenzione elettrodomestici",
+    "ripetizioni di matematica", "ripetizioni fisica",
+    "lezioni private", "corso online"
+  ],
+
+  "vehicles_modern": [
+    "fiat 500l", "fiat panda 2010", "fiat panda 2015", "fiat panda 2020",
+    "fiat tipo moderna", "fiat punto 2010", "punto evo",
+    "punto 2012", "punto 2018",
+
+    "bmw serie 1", "bmw serie 2", "bmw serie 3", "bmw serie 4",
+    "mercedes classe a", "mercedes classe b",
+    "audi a1", "audi a3", "audi a4",
+
+    "volkswagen golf 6", "golf 7", "golf 8",
+    "polo 2018", "polo 2020",
+
+    "renault clio 2015", "clio 2018", "clio 2020",
+    "captur", "megane moderna",
+
+    "toyota yaris 2014", "yaris 2018", "yaris 2020",
+    "c-hr", "rav4 hybrid moderna",
+
+    "tesla model 3", "model y", "model s", "model x",
+    "autopilot", "full self driving",
+
+    "jeep renegade", "jeep compass moderna",
+    "kia sportage moderna", "hyundai tucson moderna",
+
+    "fiat ducato 2015", "ducato 2018", "ducato 2020",
+    "3.0 multijet", "multijet 2"
+  ]
+  ,
+  "appliances_modern": [
+    "frigorifero inox", "frigo no frost", "frigo samsung moderno",
+    "frigorifero bosch", "lavatrice moderna", "asciugatrice moderna",
+    "robot aspirapolvere", "aspirapolvere senza filo",
+    "deumidificatore moderno", "piastra induzione", "forno ventilato",
+    "microonde digitale", "arduino", "raspberry pi", "smart home"
+  ],
+
+  "sport_modern": [
+    "scarpe running 2020", "scarpe running 2021", "nike air max modern",
+    "nike react", "nike vaporfly", "adidas ultraboost",
+    "pallone champions league 2018", "racchetta tennis 2020",
+    "fitbit", "garmin forerunner", "garmin fenix"
+  ],
+
+  "toys_modern": [
+    "lego moderne", "lego city 2019", "lego marvel", "lego star wars moderni",
+    "action figure marvel moderne", "funko pop", "nerf moderna",
+    "bambole moderne", "lol surprise", "hot wheels 2020"
+  ],
+
+  "furniture_modern": [
+    "ikea kallax", "ikea malm", "ikea pax",
+    "scrivania moderna", "sedia gaming", "sedia ufficio moderna",
+    "divano moderno", "tavolo moderno", "comodino moderno",
+    "letto contenitore moderno", "armadio moderno"
+  ],
+
+  "home_decor_modern": [
+    "lampada led rgb", "striscia led", "quadri moderni",
+    "poster moderni", "specchio moderno", "centrino moderno",
+    "orologio da parete moderno", "cornice moderna"
+  ],
+
+  "pet_modern": [
+    "cuccia moderna", "trasportino moderno", "guinzaglio moderno",
+    "pappa umida cane moderna", "pappa gatto moderna",
+    "lettiera moderna", "fontanella gatto moderna"
+  ],
+
+  "kids_modern": [
+    "passeggino 2018", "passeggino 2020", "ovetto moderno",
+    "lettino moderno", "giocattoli bambini moderni",
+    "macchina cavalcabile moderna", "triciclo moderno"
+  ],
+
+  "books_modern": [
+    "libri motivazionali moderni", "libri 2020", "libri recenti",
+    "manga moderni", "fumetti moderni marvel", "graphic novel moderne",
+    "manuali universitari moderni", "libri scolastici recenti"
+  ],
+
+  "fashion_modern": [
+    "giubbotto piumino moderno", "piumino 2020", "scarpe moderne",
+    "zaino moderno", "borsa moderna", "orologio smartwatch",
+    "bracciale moderno", "anello moderno", "occhiali moderni",
+    "sneakers moderne", "tute moderne", "shorts moderni"
+  ],
+
+  "misc_modern": [
+    "batteria ricaricabile moderna", "powerbank", "cover smartphone moderna",
+    "pellicola smartphone moderna", "lampadina smart",
+    "luce smart wifi", "antifurto moderno", "tracker gps",
+    "telecamera wifi moderna", "telecamera sorveglianza moderna",
+    "drone moderno", "drone dji", "dji mavic", "dji mini 2",
+    "stampante 3d", "filamento pla", "filamento abs"
+  ],
+
+"modern_brands_fr": [
+  "iphone", "ipad", "macbook", "imac", "apple watch", "airpods",
+  "samsung", "galaxy", "xiaomi", "redmi", "poco",
+  "huawei", "honor", "oppo", "realme", "oneplus",
+  "lenovo",  "acer", "msi",
+  "surface", "ps4", "ps5", "nintendo switch",
+  "gopro", "dyson", "roomba", "dreame", "tineco",
+  "tesla", "dji", "mavic"
+],
+
+"modern_terms_fr": [
+  "reconditionné", "comme neuf", "neuf scellé",
+  "4k", "8k", "hdr", "full hd",
+  "wifi 6", "wifi 6e",
+  "usb c", "thunderbolt",
+  "ssd", "nvme",
+  "ddr4", "ddr5",
+  "écran oled", "oled",
+  "144hz", "240hz"
+],
+
+"modern_devices_fr": [
+  "smartphone", "téléphone 4g", "téléphone 5g",
+  "tablette", "smartwatch",
+  "écouteurs bluetooth", "casque bluetooth",
+  "enceinte bluetooth",
+  "pc portable", "ultrabook",
+  "écran 4k",
+  "console", "jeu ps4", "jeu ps5", "jeu switch",
+  "drone", "gimbal"
+],
+
+"appliances_modern_fr": [
+  "réfrigérateur", "lave-linge", "sèche-linge",
+  "aspirateur robot", "aspirateur sans fil",
+  "micro-ondes", "four moderne",
+  "smart home"
+],
+
+"toys_modern_fr": [
+  "lego", "funko pop", "action figure marvel"
+],
+
+"fashion_modern_fr": [
+  "sneakers modernes", "doudoune", "chaussures modernes"
+]
+}
