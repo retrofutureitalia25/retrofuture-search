@@ -1,15 +1,37 @@
-# Python environment
+# ==============================
+# PYTHON
+# ==============================
 venv/
 __pycache__/
 *.pyc
 
-# Secrets
+# ==============================
+# ENV (IMPORTANTE)
+# ==============================
 .env
 
-# Local dumps / DB / Scraper data
-*.json
+# ==============================
+# LOCAL DATA (solo dump pesanti)
+# ==============================
+annunci_*.json
+feed_*.json
 
-# Scrapers & local-only scripts (not deployed)
+# ==============================
+# LOG / DEBUG
+# ==============================
+*.log
+scraper_log.txt
+search_log.txt
+
+# ==============================
+# FILE TEMP / TEST
+# ==============================
+*.html
+*.txt
+
+# ==============================
+# SCRIPT LOCALI (NON SERVER)
+# ==============================
 scraper_*.py
 aggregatore.py
 scheduler.py
@@ -21,5 +43,7 @@ parse_subito_static.py
 keywords_manager.py
 start_scheduler.bat*
 
-# System / Editor
+# ==============================
+# EDITOR
+# ==============================
 .vscode/
