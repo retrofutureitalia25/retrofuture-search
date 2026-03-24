@@ -19,9 +19,11 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(BASE_DIR, "scraper_log.txt")
 
-# Tentiamo di configurare stdout UTF-8 una sola volta
+# Tentiamo di configurare stdout UTF-8 una sola volta (compatibile Pylance)
 try:
-    sys.stdout.reconfigure(encoding="utf-8")
+    reconf = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconf):
+        reconf(encoding="utf-8")
 except Exception:
     pass
 
