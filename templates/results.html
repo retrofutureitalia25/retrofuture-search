@@ -14,12 +14,12 @@
       q=query, era=era, category=category, source=source,
       price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page, _external=True) }}">
 
-  {% if page and page>1 %}
+  {% if page and page > 1 %}
   <link rel="prev" href="{{ url_for('search',
       q=query, era=era, category=category, source=source,
       price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1, _external=True) }}">
   {% endif %}
-  {% if risultati|length == 50 %}
+  {% if (page * per_page) < total_results %}
   <link rel="next" href="{{ url_for('search',
       q=query, era=era, category=category, source=source,
       price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1, _external=True) }}">
@@ -36,6 +36,7 @@
       font-family: system-ui, Arial, sans-serif;
       margin:0;
       background:#f4f4f4;
+      -webkit-tap-highlight-color: transparent;
     }
     #rf-root{ padding: 10px 10px 14px; }
     a{ text-decoration:none; color:inherit; }
@@ -43,17 +44,30 @@
     /* ✅ TOPBAR */
     .topbar{
       display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
+      flex-direction:column;
+      gap:8px;
       background:#fff;
       border:1px solid #e9e9e9;
       border-radius:12px;
-      padding:6px 10px;
+      padding:10px;
       box-shadow:0 1px 4px rgba(0,0,0,0.04);
       margin-bottom:8px;
     }
-    .topbar-left{
+    .topbar-main{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-width:0;
+    }
+    .topbar-heading{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      min-width:0;
+    }
+    .topbar-chips{
       display:flex;
       align-items:center;
       gap:8px;
@@ -110,11 +124,12 @@
       padding:0 10px;
       border-radius:9px;
       font-weight:900;
-      border:1px solid #ddd;
+      border:1px solid #e2e2e2;
       background:#fff;
       color:#111;
       white-space:nowrap;
       font-size:12.5px;
+      box-shadow:0 1px 2px rgba(0,0,0,0.05);
     }
     .btn:hover{ background:#f6f6f6; border-color:#ccc; }
 
@@ -166,6 +181,7 @@
       background:#fff;
       width:100%;
       font-size:13px;
+      box-sizing:border-box;
     }
     .q-wrap input{
       flex: 1 1 auto;
@@ -192,7 +208,7 @@
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      flex-wrap:wrap;
+      flex-wrap:nowrap;
       margin-top:6px;
       padding-top:6px;
       border-top:1px solid #f1f1f1;
@@ -202,11 +218,12 @@
     .external-left{
       display:flex;
       align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
+      gap:10px;
+      flex-wrap:nowrap;
       min-width:0;
     }
     .ext-label{
+      margin-right:4px;
       font-weight:900;
       color:#444;
       white-space:nowrap;
@@ -214,9 +231,10 @@
 
     .ext-pill{
       height:28px;
-      width: 150px;
+      width:auto;
+      min-width:140px;
       justify-content:center;
-      padding:0 36px 0 36px;
+      padding:0 14px;
       border-radius:999px;
       border:1px solid transparent;
       display:inline-flex;
@@ -225,6 +243,7 @@
       white-space:nowrap;
       transition: transform .12s, filter .12s, box-shadow .12s, border-color .12s;
       box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+      box-sizing:border-box;
     }
     .ext-pill:hover{
       transform: translateY(-1px);
@@ -258,7 +277,7 @@
       border:1px solid rgba(255,255,255,.35);
       color:#fff;
       pointer-events:none;
-      margin-left: 6px;
+      margin-left:6px;
       text-shadow: 0 1px 0 rgba(0,0,0,0.10);
     }
     .ext-note{ font-size:11.5px; color:#777; white-space:nowrap; }
@@ -268,7 +287,7 @@
       display:flex;
       flex-wrap:wrap;
       gap:8px;
-      margin: 8px 0 10px;
+      margin:8px 0 10px;
     }
     .pill{
       display:inline-flex;
@@ -294,6 +313,122 @@
       display:none !important;
     }
 
+    /* ✅ PRICE BOX */
+    .pricebox{
+      background:#fff;
+      border:1px solid #e8ece9;
+      border-radius:14px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.04);
+      padding:14px;
+      margin-bottom:10px;
+    }
+    .pricebox-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .pricebox-title{
+      font-size:16px;
+      font-weight:900;
+      color:#111;
+      letter-spacing:-0.2px;
+      margin-bottom:4px;
+    }
+    .pricebox-sub{
+      font-size:13px;
+      color:#555;
+      line-height:1.45;
+    }
+    .pricebox-badge{
+      display:inline-flex;
+      align-items:center;
+      height:24px;
+      padding:0 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      border:1px solid #dfe8e2;
+      background:#f7fbf8;
+      color:#13795b;
+      white-space:nowrap;
+    }
+    .pricebox-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .price-stat{
+      background:#fafafa;
+      border:1px solid #ededed;
+      border-radius:12px;
+      padding:12px;
+    }
+    .price-stat-label{
+      font-size:12px;
+      font-weight:800;
+      color:#666;
+      margin-bottom:6px;
+      text-transform:uppercase;
+      letter-spacing:.2px;
+    }
+    .price-stat-value{
+      font-size:22px;
+      font-weight:900;
+      color:#111;
+      line-height:1.1;
+    }
+    .price-stat-value.small{
+      font-size:18px;
+    }
+    .price-stat-meta{
+      font-size:12px;
+      color:#666;
+      line-height:1.45;
+      margin-top:6px;
+    }
+    .pricebox-note{
+      padding-top:10px;
+      border-top:1px solid #f1f1f1;
+      font-size:13px;
+      color:#555;
+      line-height:1.5;
+    }
+    .pricebox-sources{
+      margin-top:8px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+    .source-chip{
+      display:inline-flex;
+      align-items:center;
+      height:24px;
+      padding:0 9px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      border:1px solid #e5e5e5;
+      background:#fafafa;
+      color:#444;
+    }
+    .pricebox-warning{
+      margin-top:8px;
+      font-size:12px;
+      color:#8a5a00;
+      background:#fff7e8;
+      border:1px solid #f2d8a3;
+      border-radius:10px;
+      padding:8px 10px;
+      line-height:1.45;
+    }
+    .trend-up{ color:#13795b; }
+    .trend-down{ color:#b42318; }
+    .trend-flat{ color:#666; }
+
     /* grid cards */
     .grid{
       display:grid;
@@ -309,6 +444,9 @@
       transition:transform .15s;
     }
     .card:hover{ transform:translateY(-2px); }
+    .card:active{
+      transform:scale(0.98);
+  }
 
     .remove-btn{
       position:absolute;
@@ -338,16 +476,31 @@
     }
     .title{
       margin:8px 0 4px;
-      font-weight:700;
+      font-weight:800;
       font-size:14px;
       color:#222;
       line-height:1.3;
       height:38px;
       overflow:hidden;
     }
-    .price{ color:#0a7; font-weight:900; margin-bottom:6px; }
-    .meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .logo{ height:22px; width:78px; object-fit:contain; opacity:.85; display:block; }
+    .price{
+      color:#0a7;
+      font-weight:900;
+      margin-bottom:6px;
+    }
+    .meta{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .logo{
+      height:22px;
+      width:78px;
+      object-fit:contain;
+      opacity:.85;
+      display:block;
+    }
 
     .pagination{
       display:flex;
@@ -364,22 +517,288 @@
       font-weight:900;
     }
 
+    .didyoumean{
+      margin:0 0 10px;
+      padding:12px 14px;
+      background:#fff8e8;
+      border:1px solid #f1d58a;
+      border-radius:12px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.04);
+      color:#5c4300;
+      font-size:14px;
+      line-height:1.45;
+    }
+    .didyoumean strong{
+      color:#3f2d00;
+    }
+    .didyoumean a{
+      color:#0a7;
+      font-weight:900;
+      text-decoration:none;
+    }
+    .didyoumean a:hover{
+      text-decoration:underline;
+    }
+
+    .rf-bottom-fade{
+      width:100%;
+      height:56px;
+      margin-top:10px;
+      background: linear-gradient(to bottom, rgba(244,244,244,0), rgba(244,244,244,1));
+      pointer-events:none;
+   }
+
     @media (max-width: 520px){
-      #rf-root{ padding:10px 9px 14px; }
-      .topbar{ align-items:flex-start; }
-      .topbar-right{ width:100%; }
-      .btn{ width:100%; }
+      #rf-root{
+        padding:10px 8px 14px;
+      }
 
-      .q-wrap{ flex: 1 1 100%; }
-      .field{ min-width:46%; flex: 1 1 46%; }
-      .field-wide{ min-width: 100%; flex: 1 1 100%; }
-      .price-field{ max-width:none; }
+      .topbar{
+        padding:8px 10px;
+        gap:8px;
+      }
 
-      .external-inline{ align-items:flex-start; }
-      .ext-note{ white-space:normal; }
+      .topbar-main{
+        flex-direction:column;
+        align-items:stretch;
+        gap:8px;
+      }
 
-      .ext-pill{ width: 190px; height:30px; }
-      .ext-text{ font-size:13px; }
+      .topbar-heading{
+        justify-content:flex-start;
+        align-items:center;
+        gap:6px;
+      }
+
+      .topbar-title{
+        font-size:15px;
+      }
+
+      .topbar-chips{
+        gap:6px;
+      }
+
+      .chip{
+        max-width:100%;
+        font-size:11.5px;
+        height:23px;
+        padding:0 8px;
+      }
+
+      .chip-query{
+        max-width:100%;
+      }
+
+      .topbar-right{
+        width:auto;
+        display:flex;
+        justify-content:flex-end;
+      }
+
+      .btn{
+        width:auto;
+        max-width:100%;
+        min-width:120px;
+        height:32px;
+        padding:0 10px;
+        font-size:13px;
+      }
+
+      .control-card{
+        padding:10px;
+      }
+
+      .search-row,
+      .filters-row{
+        gap:8px;
+      }
+
+      .q-wrap{
+        flex:1 1 100%;
+        min-width:100%;
+        display:grid;
+        grid-template-columns:1fr 72px;
+        gap:8px;
+        align-items:stretch;
+      }
+
+      .q-wrap input{
+        min-width:0;
+      }
+
+      .q-wrap button{
+        min-width:0;
+        width:100%;
+      }
+
+      .field,
+      .field-wide{
+        min-width:100%;
+        flex:1 1 100%;
+      }
+
+      .price-field{
+        max-width:none;
+      }
+
+      input,
+      select,
+      button{
+        height:38px;
+        font-size:14px;
+      }
+
+      .external-inline{
+        flex-direction:column;
+        align-items:stretch;
+        justify-content:flex-start;
+        gap:8px;
+      }
+
+      .external-left{
+        width:100%;
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        gap:8px;
+      }
+
+      .ext-label{
+        margin-bottom:0;
+      }
+
+      .ext-pill{
+        width:100%;
+        min-width:0;
+        height:34px;
+        padding:0 14px;
+        justify-content:center;
+      }
+
+      .ext-text{
+        font-size:13px;
+      }
+
+      .ext-note{
+        width:100%;
+        white-space:normal;
+        font-size:11.5px;
+      }
+
+      .pricebox{
+        padding:12px;
+      }
+
+      .pricebox-head{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:8px;
+      }
+
+      .pricebox-title{
+        font-size:16px;
+        line-height:1.3;
+      }
+
+      .pricebox-sub{
+        font-size:13px;
+      }
+
+      .pricebox-badge{
+        height:26px;
+        font-size:12px;
+      }
+
+      .pricebox-grid{
+        grid-template-columns:1fr;
+        gap:8px;
+      }
+
+      .price-stat{
+        padding:11px;
+      }
+
+      .price-stat-label{
+        font-size:11px;
+      }
+
+      .price-stat-value{
+        font-size:18px;
+      }
+
+      .price-stat-value.small{
+        font-size:16px;
+      }
+
+      .grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:12px;
+      }
+
+      .card{
+        padding:8px;
+        border-radius:12px;
+      }
+
+      .thumb{
+        height:138px;
+        border-radius:9px;
+      }
+
+      .title{
+        margin:7px 0 5px;
+        font-size:12px;
+        line-height:1.28;
+        height:46px;
+        overflow:hidden;
+        display:-webkit-box;
+        line-clamp:3;
+        -webkit-line-clamp:3;
+        -webkit-box-orient:vertical;
+      }
+
+      .price{
+        font-size:12px;
+        line-height:1.2;
+        margin-bottom:6px;
+      }
+
+      .meta{
+        min-height:20px;
+      }
+
+      .logo{
+        height:18px;
+        width:68px;
+      }
+
+      .pagination{
+        gap:8px;
+        flex-wrap:wrap;
+      }
+
+      .pagination a{
+        padding:8px 12px;
+        font-size:13px;
+      }
+    }
+
+    @media (max-width: 380px){
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .thumb{
+        height:180px;
+      }
+
+      .q-wrap{
+        grid-template-columns:1fr;
+      }
+
+      .q-wrap button{
+        width:100%;
+      }
     }
   </style>
 
@@ -538,24 +957,28 @@
   <div id="rf-root">
 
     <div class="topbar">
-      <div class="topbar-left">
-        <div class="topbar-title">Risultati</div>
+      <div class="topbar-main">
+        <div class="topbar-heading">
+          <div class="topbar-title">Risultati</div>
 
+          <span class="chip chip-count">
+            {{ total_results }} {{ 'risultato' if total_results == 1 else 'risultati' }}
+          </span>
+        </div>
+
+        <div class="topbar-right">
+          <a href="/" class="btn">Nuova ricerca</a>
+        </div>
+      </div>
+
+      <div class="topbar-chips">
         {% if query %}
           <span class="chip chip-query">{{ query }}</span>
         {% else %}
           <span class="chip chip-muted">tutto</span>
         {% endif %}
 
-        <span class="chip chip-count">
-          {{ risultati|length }} {{ 'risultato' if risultati|length == 1 else 'risultati' }}
-        </span>
-
         <span class="chip chip-admin admin-only-inline">ALT+A</span>
-      </div>
-
-      <div class="topbar-right">
-        <a href="/" class="btn">Nuova ricerca</a>
       </div>
     </div>
 
@@ -601,7 +1024,6 @@
             </select>
           </div>
 
-          <!-- ✅ Categoria (Opzione A: nascosta in iframe se category è già fissata) -->
           <div class="field field-wide rf-field-category">
             <select name="category" {% if scope=='tutti' %}disabled{% endif %}>
               <option value="">Categoria</option>
@@ -678,13 +1100,257 @@
       {% endif %}
     </div>
 
+    {% if suggested_query %}
+      <div class="didyoumean">
+        Nessun risultato per: <strong>{{ query }}</strong><br>
+        Forse cercavi:
+        <a href="{{ url_for('search',
+          q=suggested_query,
+          era=era,
+          category=category,
+          source=source,
+          price_min=price_min,
+          price_max=price_max,
+          sort=sort,
+          scope=scope,
+          page=1) }}">{{ suggested_query }}</a>
+      </div>
+    {% endif %}
+
+    {% if price_stats %}
+      {% if price_stats.show_price_box %}
+        <div class="pricebox">
+          <div class="pricebox-head">
+            <div>
+              <div class="pricebox-title">💰 Stima di mercato per “{{ query }}”</div>
+
+              {% if price_stats.display_mode == "show_strong_estimate" %}
+                <div class="pricebox-sub">
+                  Stima basata su un buon numero di annunci simili trovati da RetroFuture.
+                </div>
+              {% elif price_stats.display_mode == "show_preliminary_estimate" %}
+                <div class="pricebox-sub">
+                  Abbiamo trovato pochi annunci simili per questa ricerca, quindi la stima è indicativa e va letta come riferimento orientativo.
+                </div>
+              {% elif price_stats.display_mode == "show_single_observation" %}
+                <div class="pricebox-sub">
+                  Abbiamo trovato solo 1 annuncio simile. Non ci sono ancora abbastanza dati per una stima affidabile.
+                </div>
+              {% endif %}
+            </div>
+
+            {% if price_stats.display_mode == "show_strong_estimate" %}
+              <span class="pricebox-badge">Affidabilità alta</span>
+            {% elif price_stats.display_mode == "show_preliminary_estimate" %}
+              <span class="pricebox-badge">Stima preliminare</span>
+            {% elif price_stats.display_mode == "show_single_observation" %}
+              <span class="pricebox-badge">Dato singolo</span>
+            {% endif %}
+          </div>
+
+          {% if price_stats.display_mode == "show_strong_estimate" %}
+            <div class="pricebox-grid">
+              <div class="price-stat">
+                <div class="price-stat-label">Prezzo mediano</div>
+                <div class="price-stat-value">{{ "%.0f"|format(price_stats.median_price|float) }} €</div>
+              </div>
+
+              <div class="price-stat">
+                <div class="price-stat-label">Fascia tipica</div>
+                <div class="price-stat-value small">
+                  {{ "%.0f"|format(price_stats.p25_price|float) }} – {{ "%.0f"|format(price_stats.p75_price|float) }} €
+                </div>
+              </div>
+
+              <div class="price-stat">
+                <div class="price-stat-label">Min / Max</div>
+                <div class="price-stat-value small">
+                  {{ "%.0f"|format(price_stats.min_price|float) }} – {{ "%.0f"|format(price_stats.max_price|float) }} €
+                </div>
+              </div>
+
+              <div class="price-stat">
+                <div class="price-stat-label">Annunci analizzati</div>
+                <div class="price-stat-value">{{ price_stats.clean_count_valid }}</div>
+              </div>
+
+              {% if price_stats.trend %}
+                <div class="price-stat">
+                  <div class="price-stat-label">Trend ultimi {{ price_stats.trend.days }} giorni</div>
+
+                  {% if price_stats.trend.direction == "up" %}
+                    <div class="price-stat-value trend-up">
+                      ↑ +{{ price_stats.trend.change_pct }}%
+                    </div>
+                  {% elif price_stats.trend.direction == "down" %}
+                    <div class="price-stat-value trend-down">
+                      ↓ {{ price_stats.trend.change_pct }}%
+                    </div>
+                  {% else %}
+                    <div class="price-stat-value trend-flat">
+                      → 0%
+                    </div>
+                  {% endif %}
+
+                  <div class="price-stat-meta">
+                    Da {{ "%.0f"|format(price_stats.trend.first_price|float) }} € a {{ "%.0f"|format(price_stats.trend.last_price|float) }} €
+                    · {{ price_stats.trend.snapshots_count }} snapshot
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+
+          {% elif price_stats.display_mode == "show_preliminary_estimate" %}
+            <div class="pricebox-grid">
+              <div class="price-stat">
+                <div class="price-stat-label">Prezzo mediano</div>
+                <div class="price-stat-value">{{ "%.0f"|format(price_stats.median_price|float) }} €</div>
+              </div>
+
+              <div class="price-stat">
+                <div class="price-stat-label">Prezzo minimo</div>
+                <div class="price-stat-value small">{{ "%.0f"|format(price_stats.min_price|float) }} €</div>
+              </div>
+
+              <div class="price-stat">
+                <div class="price-stat-label">Prezzo massimo</div>
+                <div class="price-stat-value small">{{ "%.0f"|format(price_stats.max_price|float) }} €</div>
+              </div>
+
+              <div class="price-stat">
+                <div class="price-stat-label">Annunci analizzati</div>
+                <div class="price-stat-value">{{ price_stats.clean_count_valid }}</div>
+              </div>
+
+              {% if price_stats.trend %}
+                <div class="price-stat">
+                  <div class="price-stat-label">Trend ultimi {{ price_stats.trend.days }} giorni</div>
+
+                  {% if price_stats.trend.direction == "up" %}
+                    <div class="price-stat-value trend-up">
+                      ↑ +{{ price_stats.trend.change_pct }}%
+                    </div>
+                  {% elif price_stats.trend.direction == "down" %}
+                    <div class="price-stat-value trend-down">
+                      ↓ {{ price_stats.trend.change_pct }}%
+                    </div>
+                  {% else %}
+                    <div class="price-stat-value trend-flat">
+                      → 0%
+                    </div>
+                  {% endif %}
+
+                  <div class="price-stat-meta">
+                    Da {{ "%.0f"|format(price_stats.trend.first_price|float) }} € a {{ "%.0f"|format(price_stats.trend.last_price|float) }} €
+                    · {{ price_stats.trend.snapshots_count }} snapshot
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+
+          {% elif price_stats.display_mode == "show_single_observation" %}
+            <div class="pricebox-grid">
+              <div class="price-stat">
+                <div class="price-stat-label">Prezzo osservato in un annuncio</div>
+                <div class="price-stat-value">{{ "%.0f"|format(price_stats.observed_price|float) }} €</div>
+              </div>
+
+              <div class="price-stat">
+                <div class="price-stat-label">Annunci analizzati</div>
+                <div class="price-stat-value">{{ price_stats.clean_count_valid }}</div>
+              </div>
+
+              {% if price_stats.trend %}
+                <div class="price-stat">
+                  <div class="price-stat-label">Trend ultimi {{ price_stats.trend.days }} giorni</div>
+
+                  {% if price_stats.trend.direction == "up" %}
+                    <div class="price-stat-value trend-up">
+                      ↑ +{{ price_stats.trend.change_pct }}%
+                    </div>
+                  {% elif price_stats.trend.direction == "down" %}
+                    <div class="price-stat-value trend-down">
+                      ↓ {{ price_stats.trend.change_pct }}%
+                    </div>
+                  {% else %}
+                    <div class="price-stat-value trend-flat">
+                      → 0%
+                    </div>
+                  {% endif %}
+
+                  <div class="price-stat-meta">
+                    Da {{ "%.0f"|format(price_stats.trend.first_price|float) }} € a {{ "%.0f"|format(price_stats.trend.last_price|float) }} €
+                    · {{ price_stats.trend.snapshots_count }} snapshot
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if price_stats.sources %}
+            <div class="pricebox-note">
+              Marketplace inclusi nel calcolo:
+              <div class="pricebox-sources">
+                {% for s in price_stats.sources %}
+                  <span class="source-chip">{{ s }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if price_stats.used_fallback_dubbio %}
+            <div class="pricebox-warning">
+              Per questa stima RetroFuture ha ampliato leggermente il campione includendo anche annunci meno certi, perché i dati iniziali erano troppo pochi.
+            </div>
+          {% endif %}
+        </div>
+
+      {% else %}
+        {% if price_stats.display_reason in ["query_not_specific", "no_clean_data", "only_two_prices", "extreme_price_dispersion"] %}
+          <div class="pricebox">
+            <div class="pricebox-head">
+              <div>
+                <div class="pricebox-title">💰 Stima di mercato per “{{ query }}”</div>
+
+                {% if price_stats.display_reason == "query_not_specific" %}
+                  <div class="pricebox-sub">
+                    La ricerca è troppo generica per stimare un prezzo affidabile. Prova a cercare un oggetto più specifico.
+                  </div>
+                {% elif price_stats.display_reason == "only_two_prices" %}
+                  <div class="pricebox-sub">
+                    Abbiamo trovato troppo pochi annunci coerenti per mostrare una stima credibile.
+                  </div>
+                {% elif price_stats.display_reason == "extreme_price_dispersion" %}
+                  <div class="pricebox-sub">
+                    I prezzi trovati per questa ricerca sono troppo variabili, quindi RetroFuture preferisce non mostrare una stima poco affidabile.
+                  </div>
+                {% else %}
+                  <div class="pricebox-sub">
+                    Non abbiamo ancora abbastanza annunci validi per stimare il prezzo di questa ricerca.
+                  </div>
+                {% endif %}
+              </div>
+
+              {% if price_stats.display_reason == "query_not_specific" %}
+                <span class="pricebox-badge">Ricerca troppo ampia</span>
+              {% elif price_stats.display_reason == "extreme_price_dispersion" %}
+                <span class="pricebox-badge">Dati incoerenti</span>
+              {% else %}
+                <span class="pricebox-badge">Dati insufficienti</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
     <div class="grid" id="rf-grid">
       {% for r in risultati %}
       <div class="card" id="{{ r.hash }}">
         <button class="remove-btn"
           onclick="removeItem('{{ r.hash }}', '{{ r.title or r.titolo }}')">🗑️</button>
 
-        <a href="{{ r.url or r.link }}" target="_blank" rel="noopener">
+        <a href="{{ url_for('go') }}?url={{ (r.url or r.link)|urlencode }}&q={{ (query or '')|urlencode }}" target="_blank" rel="noopener">
           <img class="thumb"
                src="{{ r.image or r.immagine or 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg' }}"
                alt="{{ r.title or r.titolo }}"
@@ -723,12 +1389,14 @@
           price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
       {% endif %}
       <span>Pagina {{ page }}</span>
-      {% if risultati|length == 50 %}
+      {% if (page * per_page) < total_results %}
         <a href="{{ url_for('search',
           q=query, era=era, category=category, source=source,
           price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
       {% endif %}
     </div>
+
+    <div class="rf-bottom-fade"></div>
 
   </div>
 
