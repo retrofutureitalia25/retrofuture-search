@@ -318,6 +318,14 @@
       display:none !important;
     }
 
+    body.rf-category .topbar{
+      display:none !important;
+   }
+
+    body.rf-category .chip-muted{
+      display:none !important;
+   }
+
     /* ✅ PRICE BOX */
     .pricebox{
       background:#fff;
@@ -844,10 +852,14 @@
 
         if (cat){
           document.documentElement.classList.add("rf-hide-category");
-          if (document.body) document.body.classList.add("rf-hide-category");
-        }
-      } catch(e){}
-    });
+
+          if (document.body) {
+            document.body.classList.add("rf-hide-category");
+            document.body.classList.add("rf-category");
+          }
+       }
+     } catch(e){}
+  });
 
     // ==========================================================
     // ✅ NO-IMAGE rule (SOLO mercatino / mercatinousato)
