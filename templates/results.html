@@ -544,6 +544,14 @@
       padding: 10px 10px 14px;
     }
 
+    .rf-bottom-fade{
+      width: 100%;
+      height: 40px;
+      margin-top: -10px;
+      background: linear-gradient(to bottom, rgba(244,244,244,0) 0%, #ffffff 100%);
+      pointer-events: none;
+    }
+
     @media (max-width: 520px){
       #rf-root{
         padding:10px 8px 14px;
@@ -1391,6 +1399,8 @@
           price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
       {% endif %}
     </div>
+
+    <div class="rf-bottom-fade"></div>
 
   </div>
 
