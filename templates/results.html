@@ -140,32 +140,14 @@
 
     /* ✅ CARD CONTROLLO */
     .control-card{
-      position:relative;
       background:#fff;
       border:1px solid #eee;
+      border-top-color: rgba(238,238,238,0.35);
       border-radius:12px;
       box-shadow:0 1px 4px rgba(0,0,0,0.04);
       padding:8px;
       margin-bottom:8px;
-      overflow:hidden;
     }
-    .control-card::before{
-      content:"";
-      position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      height:16px;
-      
-      background: linear-gradient(
-        to bottom,
-        rgba(244,244,244,0.8) 0%,
-        rgba(244,244,244,0.3) 60%,
-        rgba(255,255,255,0) 100%
-     );
-     pointer-events:none;
-    }
-
     
     .control-row{
       display:flex;
