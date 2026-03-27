@@ -1016,7 +1016,7 @@
       </a>
     </div>
 
-    <div class="control-card" id="rf-results-start">
+    <div class="control-card">
       <form method="get" action="/search">
         <div class="control-row search-row">
           <div class="q-wrap">
@@ -1403,13 +1403,13 @@
       {% if page > 1 %}
         <a href="{{ url_for('search',
           q=query, era=era, category=category, source=source,
-          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}#rf-results-start">← Precedente</a>
+          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page-1) }}">← Precedente</a>
       {% endif %}
       <span>Pagina {{ page }}</span>
       {% if (page * per_page) < total_results %}
         <a href="{{ url_for('search',
           q=query, era=era, category=category, source=source,
-          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}#rf-results-start">Successiva →</a>
+          price_min=price_min, price_max=price_max, sort=sort, scope=scope, page=page+1) }}">Successiva →</a>
       {% endif %}
     </div>
   </div>
